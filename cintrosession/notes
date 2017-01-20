@@ -1,0 +1,93 @@
+Unix
+  tutorials on class web page, google, etc
+  man - can also look up system calls w/ man 2 [syscall]
+  diff - shows differences between 2 files - basis of project grading
+    -can use to compare output to reference output
+    -case and whitespace sensitive
+  diff is particular and used for grading, so try to match it exactly
+  seq [a] [b] - prints all numbers from a to b in a sequence
+  od - octal dump - prints out octal, hex, or binary values of a binary file
+    eg od -t u1 [filename] - produces an unsigned decimal dump
+    eg od -t x1 [filename] - produces an unsigned hex dump
+    eg od -t u2 [filename] - read 2 bytes at a time
+    -j skips bytes at file beginning
+    -N limits number of bytes dumped
+  make
+    takes its activity from a makefile called Makefile
+    makefiles contain a list of rules
+    eg:
+      tester: tester.o
+        gcc -o tester tester.o
+    tester is the target: what we want to make
+    tester.o is a dependency
+    indentation must be a tab
+    to make tester.o:
+    tester.o: tester.c tester.h
+      gcc -c -g -Werror -Wall tester.c
+    essentially updates tester.o based on tester.c and tester.h
+    clean removes junk:
+    clean:
+      rm -f *.o
+      rm -f tester
+    clean is only run when make clean is invoked from the terminal
+  gcc
+    always use -g -Wall -Werror
+      allows debugging and addresses all warnings, treats all warnings as if
+        they're errors
+  procedure for running:
+    make clean
+    make
+    ./
+  gdb
+    gdb ./[filename] to run gdb
+    b # - sets a breakpoint at line #
+    run - runs the program
+    print [var] - prints the value of a variable
+    n - continues till next breakpoint
+    c - continues till done
+    where - gives error info after a crash
+C
+  the C programming language - definitive reference
+  getopt() is your friend - man it - parses command line args
+  no string data type, must use char arrays, must be terminated by null char \0
+  char name [BUFFER_LENGTH]; //creates char array, holds whatever was there before
+  memset (name, 0x0, BUFFER_LENGTH); //clears the memory in the array
+  strncpy (name, STRING_TO_COPY, BUFFER_LENGTH);
+  system calls
+    request for OS to do something, eg open a file
+    int fd; //stands for file descriptor
+    fd = open ("output.dat",O_CREAT|O_WRONLY);
+    write(fd,STRING_TO_WRITE,strlen(STRING_TO_WRITE)); //strlen doesn't count null terminator
+    close(fd);
+    but don't just do this, have to check for errors
+    check if opening fd returns less than 0/failed
+    check if writing was less than the string length
+  pointers
+    int x = 1947, *p = NULL; //*p is a pointer
+    printf("x=%d, p=0x%x\n",x,(unsigned int)p); //prints values
+    printf((unsigned int)&x, (unsigned int)&p); //prints addresses
+    p=&x; //points p to x
+    *p += 5; //increments what p points to by 5
+    C passes by value by default
+    to pass by reference, just pass the pointer
+    read chaper 5 of the book
+  memory
+    2 ways to allocate
+      -declare variables
+      -malloc()
+        eg malloc(sizeof(unsigned int)) //allocates enough to hold an unsigned int
+        eg if((buffer2 == malloc(BUFFER_LEN)) == NULL) //null if failed
+  structures
+    struct name
+    {
+      fields
+    };
+    x->cnt...//->
+  casting
+    think of memory as generic/not typed
+    can change how it's interpreted on the fly
+    (void *) - a typeless pointer
+  avoid repetitive code
+    -can create an error checking version of malloc, file opening, etc
+    -can copy zmalloc from slides
+  write short programs to test things out
