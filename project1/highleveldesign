@@ -1,9 +1,6 @@
-McFarlandProject1
-  +main() ;creates + calls instance of ipdump based on input
+  +main() ;creates + calls appropriate method based on input
   -parseInput() ;parses terminal input and checks for invalid input
                 ;(may need to make error checking its own function, we'll see)
-
-IPdump
   +dumpInfo() ;print the appropriate information as specified by terminal input
   +dumpAddresses() ;print the list of IP addresses
   +dumpPrefixes() ;print 1st 3 bytes of each IP address
