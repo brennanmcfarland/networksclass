@@ -5,8 +5,8 @@
 
 #define TRUE 1
 #define FALSE 0
-#define NUMFLAGS 3
-#define FLAGSALLOCSIZE NUMFLAGS*4
+#define NUMFLAGS 4
+#define FLAGSALLOCSIZE NUMFLAGS*sizeof(int)
 #define IPADDRESSSIZE 4
 
 //prints the formatted IP address
@@ -22,21 +22,22 @@ void dumpAddress(char *ipaddress)
 }
 
 //sets argument flag and returns any options given
-char *parseInput(int input, int (*flags)[NUMFLAGS])
+char *parseInput(int input, int flags[])
 {
     switch(input)
     {
     case 'i':
-      *flags[0] = TRUE;
+      flags[0] = TRUE;
       break;
     case 'p':
-      *flags[1] = TRUE;
+      flags[1] = TRUE;
       break;
     case 'o':
-      *flags[2] = TRUE;
+      flags[2] = TRUE;
       return optarg;
       break;
     case 'L':
+      flags[3] = TRUE;
       return optarg;
       break;
     case '?':
@@ -56,19 +57,31 @@ int main(int argc, char *argv[])
 {
 
   int flags[NUMFLAGS];
-  int (*flgs)[NUMFLAGS] = &flags;
-  memset(flags, 0x0, FLAGSALLOCSIZE);
+  for(int i=0; i<NUMFLAGS; i++)
+    flags[i] = 0;
   int input;
 
   char *testaddress = "abcd"; //delete later
   dumpAddress(testaddress);
-  while((input = getopt(argc, argv, "ipo:")) != -1)
+
+  //read input
+  while((input = getopt(argc, argv, "ipo:L:")) != -1)
   {
-    //keeps reporting stack smashing
-    char *option = parseInput(input, flgs);
-    printf("%d",(int)sizeof(*option));
-    printf("%s",option);
+    char *option = parseInput(input, flags);
+    if(option != NULL)
+    {
+      printf("%d",(int)sizeof(*option));
+      printf("%s",option);
+    }
   }
+  //ensure an input file is given
+  if(flags[3] == FALSE)
+  {
+    printf("Error: missing input file argument\n");
+    return 1;
+  }
+
+  //don't forget to check for L
 
   return 0;
 }
