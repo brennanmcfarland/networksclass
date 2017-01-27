@@ -1,7 +1,8 @@
-#include <unistd.h> //for getopt
+#include <unistd.h> //for getopt and file operations
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h> //for memset
+#include <fcntl.h> //for file operations
 
 #define TRUE 1
 #define FALSE 0
@@ -60,20 +61,25 @@ int main(int argc, char *argv[])
   for(int i=0; i<NUMFLAGS; i++)
     flags[i] = 0;
   int input;
+  char *ipaddressfilename;
+
+  //read input args into variables
+  while((input = getopt(argc, argv, "ipo:L:")) != -1)
+  {
+    int prevLset = flags[3];
+    char *option = parseInput(input, flags);
+
+    //if the given argument is L, copy the input file name
+    if(prevLset == FALSE && flags[3] == TRUE)
+    {
+      //no need to check if null; already handled by getopt
+      ipaddressfilename = option;
+    }
+  }
 
   char *testaddress = "abcd"; //delete later
   dumpAddress(testaddress);
 
-  //read input
-  while((input = getopt(argc, argv, "ipo:L:")) != -1)
-  {
-    char *option = parseInput(input, flags);
-    if(option != NULL)
-    {
-      printf("%d",(int)sizeof(*option));
-      printf("%s",option);
-    }
-  }
   //ensure an input file is given
   if(flags[3] == FALSE)
   {
@@ -81,7 +87,18 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  //don't forget to check for L
+  //open and read from input file
+  int ipaddressfile;
+  int ipaddressfileread;
+  void *filereadbuffer;
+  if((ipaddressfile = open(ipaddressfilename,O_RDONLY))<0)
+  {
+    printf("Failed to open file\n");
+    return 1;
+  }
+  //may not be proper use of arguments
+  ipaddressfileread = read(ipaddressfile,filereadbuffer,IPADDRESSSIZE);
+  close(ipaddressfile);
 
   return 0;
 }
