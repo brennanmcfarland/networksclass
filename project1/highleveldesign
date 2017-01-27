@@ -2,6 +2,6 @@
   -parseInput() ;parses terminal input and checks for invalid input
                 ;(may need to make error checking its own function, we'll see)
   +dumpInfo() ;print the appropriate information as specified by terminal input
-  +dumpAddresses() ;print the list of IP addresses
-  +dumpPrefixes() ;print 1st 3 bytes of each IP address
-  +dumpOrgs()  ;print the organizations associated with the IP addresses
+  +dumpAddress() ;print the IP address
+  +dumpPrefix() ;print 1st 3 bytes of the IP address
+  +dumpOrg()  ;print the organization associated with the IP address

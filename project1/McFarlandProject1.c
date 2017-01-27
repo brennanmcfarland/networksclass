@@ -7,6 +7,19 @@
 #define FALSE 0
 #define NUMFLAGS 3
 #define FLAGSALLOCSIZE NUMFLAGS*4
+#define IPADDRESSSIZE 4
+
+//prints the formatted IP address
+void dumpAddress(char *ipaddress)
+{
+  int ipaddressnumberbyte = (int)(ipaddress[0]);
+  printf("%d",ipaddressnumberbyte);
+  for(int i=0; i<IPADDRESSSIZE; i++)
+  {
+    ipaddressnumberbyte = (int)(ipaddress[i]);
+    printf(".%d",ipaddressnumberbyte);
+  }
+}
 
 //sets argument flag and returns any options given
 char *parseInput(int input, int (*flags)[NUMFLAGS])
@@ -47,6 +60,8 @@ int main(int argc, char *argv[])
   memset(flags, 0x0, FLAGSALLOCSIZE);
   int input;
 
+  char *testaddress = "abcd"; //delete later
+  dumpAddress(testaddress);
   while((input = getopt(argc, argv, "ipo:")) != -1)
   {
     //keeps reporting stack smashing
@@ -54,11 +69,6 @@ int main(int argc, char *argv[])
     printf("%d",(int)sizeof(*option));
     printf("%s",option);
   }
-
-  //printf("flag_addresses = %d \n", flags[0]);
-  //printf("flag_prefixes = %d \n", flags[1]);
-  //printf("flag_orgs = %d \n", flags[2]);
-
 
   return 0;
 }
