@@ -9,7 +9,6 @@
 #define NUMFLAGS 4
 #define FLAGSALLOCSIZE NUMFLAGS*sizeof(int)
 #define IPADDRESSSIZE 4
-#define IPADDRESSPREFIXSIZE 3
 #define BYTESIZE 1
 
 //prints the formatted IP address
@@ -26,18 +25,6 @@ char *dumpAddress(char *ipaddress)
   }
   char *formattedipaddresspointer = &formattedipaddress;
   return formattedipaddresspointer;
-}
-
-//prints the formatted /24 prefix of the IP address
-void dumpPrefix(char *ipaddress)
-{
-  int ipaddressnumberbyte = (int)(ipaddress[0]);
-  printf("%d",(unsigned char)ipaddressnumberbyte);
-  for(int i=1; i<IPADDRESSPREFIXSIZE; i++)
-  {
-    ipaddressnumberbyte = (int)(ipaddress[i]);
-    printf(".%d",(unsigned char)ipaddressnumberbyte);
-  }
 }
 
 //sets argument flag and returns any options given
@@ -158,6 +145,7 @@ int main(int argc, char *argv[])
     {
       ipaddressnumberbyte = 0;
       if(flags[0] == TRUE)
+<<<<<<< HEAD
       {
         printf(dumpAddress(ipaddress));
         if(flags[1] == TRUE)
@@ -167,6 +155,9 @@ int main(int argc, char *argv[])
       {
         dumpPrefix(ipaddress);
       }
+=======
+        dumpAddress(ipaddress);
+>>>>>>> parent of 18676ee... now -p works too!
       if(flags[0] == TRUE || flags[1] == TRUE || flags[2] == TRUE)
         printf("\n");
     }
