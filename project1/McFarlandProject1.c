@@ -20,11 +20,16 @@ char *dumpAddress(char *ipaddress)
   for(int i=1; i<IPADDRESSSIZE; i++)
   {
     ipaddressnumberbyte = (int)(ipaddress[i]);
+<<<<<<< HEAD
     char[2i-1] = '.';
     char[2i] = (unsigned char)ipaddressnumberbyte);
   }
   char *formattedipaddresspointer = &formattedipaddress;
   return formattedipaddresspointer;
+=======
+    printf(".%d",(unsigned char)ipaddressnumberbyte);
+  }
+>>>>>>> parent of 18676ee... now -p works too!
 }
 
 //sets argument flag and returns any options given
@@ -146,6 +151,7 @@ int main(int argc, char *argv[])
       ipaddressnumberbyte = 0;
       if(flags[0] == TRUE)
 <<<<<<< HEAD
+<<<<<<< HEAD
       {
         printf(dumpAddress(ipaddress));
         if(flags[1] == TRUE)
@@ -155,6 +161,9 @@ int main(int argc, char *argv[])
       {
         dumpPrefix(ipaddress);
       }
+=======
+        dumpAddress(ipaddress);
+>>>>>>> parent of 18676ee... now -p works too!
 =======
         dumpAddress(ipaddress);
 >>>>>>> parent of 18676ee... now -p works too!
