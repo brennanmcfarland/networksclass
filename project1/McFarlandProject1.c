@@ -13,15 +13,19 @@
 #define BYTESIZE 1
 
 //prints the formatted IP address
-void dumpAddress(char *ipaddress)
+char *dumpAddress(char *ipaddress)
 {
+  char formattedipaddress[IPADDRESSSIZE*(IPADDRESSSIZE-1)];
   int ipaddressnumberbyte = (int)(ipaddress[0]);
-  printf("%d",(unsigned char)ipaddressnumberbyte);
+  char[0] = (unsigned char)ipaddressnumberbyte;
   for(int i=1; i<IPADDRESSSIZE; i++)
   {
     ipaddressnumberbyte = (int)(ipaddress[i]);
-    printf(".%d",(unsigned char)ipaddressnumberbyte);
+    char[2i-1] = '.';
+    char[2i] = (unsigned char)ipaddressnumberbyte);
   }
+  char *formattedipaddresspointer = &formattedipaddress;
+  return formattedipaddresspointer;
 }
 
 //prints the formatted /24 prefix of the IP address
@@ -155,7 +159,7 @@ int main(int argc, char *argv[])
       ipaddressnumberbyte = 0;
       if(flags[0] == TRUE)
       {
-        dumpAddress(ipaddress);
+        printf(dumpAddress(ipaddress));
         if(flags[1] == TRUE)
           printf(" ");
       }
