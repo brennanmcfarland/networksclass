@@ -9,18 +9,11 @@
 #define NUMFLAGS 4
 #define FLAGSALLOCSIZE NUMFLAGS*sizeof(int)
 #define IPADDRESSSIZE 4
+#define IPADDRESSPREFIXSIZE 3
 #define BYTESIZE 1
 
 //prints the formatted IP address
 void dumpAddress(char *ipaddress)
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> parent of e986f0c... attempt to rewrite dumpaddress() to return string instead of just print it
-=======
->>>>>>> parent of e986f0c... attempt to rewrite dumpaddress() to return string instead of just print it
 {
   int ipaddressnumberbyte = (int)(ipaddress[0]);
   printf("%d",(unsigned char)ipaddressnumberbyte);
@@ -33,11 +26,10 @@ void dumpAddress(char *ipaddress)
 
 //prints the formatted /24 prefix of the IP address
 void dumpPrefix(char *ipaddress)
->>>>>>> parent of e986f0c... attempt to rewrite dumpaddress() to return string instead of just print it
 {
   int ipaddressnumberbyte = (int)(ipaddress[0]);
   printf("%d",(unsigned char)ipaddressnumberbyte);
-  for(int i=1; i<IPADDRESSSIZE; i++)
+  for(int i=1; i<IPADDRESSPREFIXSIZE; i++)
   {
     ipaddressnumberbyte = (int)(ipaddress[i]);
     printf(".%d",(unsigned char)ipaddressnumberbyte);
@@ -162,9 +154,6 @@ int main(int argc, char *argv[])
     {
       ipaddressnumberbyte = 0;
       if(flags[0] == TRUE)
-<<<<<<< HEAD
-        dumpAddress(ipaddress);
-=======
       {
         dumpAddress(ipaddress);
         if(flags[1] == TRUE)
@@ -174,7 +163,6 @@ int main(int argc, char *argv[])
       {
         dumpPrefix(ipaddress);
       }
->>>>>>> parent of e986f0c... attempt to rewrite dumpaddress() to return string instead of just print it
       if(flags[0] == TRUE || flags[1] == TRUE || flags[2] == TRUE)
         printf("\n");
     }
