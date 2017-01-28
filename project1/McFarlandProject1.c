@@ -55,22 +55,26 @@ char *parseInput(int input, int flags[])
     return NULL;
 }
 
-//read a single byte from a file
-char readbyte(int file)
+//read a single byte from a file and error messages
+int readbyte(int file, char *readbyte)
 {
   void *readbuffer = malloc(BYTESIZE);
   int fileread;
   if((fileread = read(file,readbuffer,BYTESIZE))
   == 0)
   {
-      return -1; //end of file
+    return 1;
   }
   else if(fileread != BYTESIZE)
   {
     printf("Failed to read from file\n");
     exit(1);
   }
-  return *(char *)(readbuffer);
+  else
+  {
+    *readbyte = *(char *)(readbuffer);
+  }
+  return 0;
 }
 
 void *safemalloc (unsigned int sz)
@@ -123,18 +127,23 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  char ipaddress[IPADDRESSSIZE]; //replace this with a better variable name
+  char ipaddress[IPADDRESSSIZE];
+  char ipaddressfilechar = '0'; //initialized but always overwritten
+  char *ipaddressfilebuffer;
+  ipaddressfilebuffer = &ipaddressfilechar;
   int ipaddressnumberbyte = 0;
 
-  //ERROR: exiting the loop too early for some reason
-  while((ipaddress[ipaddressnumberbyte] = readbyte(ipaddressfile)) != -1)
+  while((readbyte(ipaddressfile, ipaddressfilebuffer)) != 1)
   {
+    ipaddress[ipaddressnumberbyte] = ipaddressfilebuffer[0];
     ipaddressnumberbyte++;
     if(ipaddressnumberbyte == IPADDRESSSIZE)
     {
       ipaddressnumberbyte = 0;
-      dumpAddress(ipaddress);
-      printf("\n");
+      if(flags[0] == TRUE)
+        dumpAddress(ipaddress);
+      if(flags[0] == TRUE || flags[1] == TRUE || flags[2] == TRUE)
+        printf("\n");
     }
   }
 
