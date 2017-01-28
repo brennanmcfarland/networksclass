@@ -9,16 +9,17 @@
 #define NUMFLAGS 4
 #define FLAGSALLOCSIZE NUMFLAGS*sizeof(int)
 #define IPADDRESSSIZE 4
+#define BYTESIZE 1
 
 //prints the formatted IP address
 void dumpAddress(char *ipaddress)
 {
   int ipaddressnumberbyte = (int)(ipaddress[0]);
-  printf("%d",ipaddressnumberbyte);
-  for(int i=0; i<IPADDRESSSIZE; i++)
+  printf("%d",(unsigned char)ipaddressnumberbyte);
+  for(int i=1; i<IPADDRESSSIZE; i++)
   {
     ipaddressnumberbyte = (int)(ipaddress[i]);
-    printf(".%d",ipaddressnumberbyte);
+    printf(".%d",(unsigned char)ipaddressnumberbyte);
   }
 }
 
@@ -54,6 +55,36 @@ char *parseInput(int input, int flags[])
     return NULL;
 }
 
+//read a single byte from a file
+char readbyte(int file)
+{
+  void *readbuffer = malloc(BYTESIZE);
+  int fileread;
+  if((fileread = read(file,readbuffer,BYTESIZE))
+  == 0)
+  {
+      return -1; //end of file
+  }
+  else if(fileread != BYTESIZE)
+  {
+    printf("Failed to read from file\n");
+    exit(1);
+  }
+  return *(char *)(readbuffer);
+}
+
+void *safemalloc (unsigned int sz)
+{
+    void *p;
+    if ((p = (void *)malloc (sz)) == NULL)
+    {
+        printf ("memory allocation failed, exiting ...\n");
+        exit (1);
+    }
+    memset (p,0x0,sz);
+    return (p);
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -77,9 +108,6 @@ int main(int argc, char *argv[])
     }
   }
 
-  char *testaddress = "abcd"; //delete later
-  dumpAddress(testaddress);
-
   //ensure an input file is given
   if(flags[3] == FALSE)
   {
@@ -89,15 +117,27 @@ int main(int argc, char *argv[])
 
   //open and read from input file
   int ipaddressfile;
-  int ipaddressfileread;
-  void *filereadbuffer;
   if((ipaddressfile = open(ipaddressfilename,O_RDONLY))<0)
   {
     printf("Failed to open file\n");
     return 1;
   }
-  //may not be proper use of arguments
-  ipaddressfileread = read(ipaddressfile,filereadbuffer,IPADDRESSSIZE);
+
+  char ipaddress[IPADDRESSSIZE]; //replace this with a better variable name
+  int ipaddressnumberbyte = 0;
+
+  //ERROR: exiting the loop too early for some reason
+  while((ipaddress[ipaddressnumberbyte] = readbyte(ipaddressfile)) != -1)
+  {
+    ipaddressnumberbyte++;
+    if(ipaddressnumberbyte == IPADDRESSSIZE)
+    {
+      ipaddressnumberbyte = 0;
+      dumpAddress(ipaddress);
+      printf("\n");
+    }
+  }
+
   close(ipaddressfile);
 
   return 0;
