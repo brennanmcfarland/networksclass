@@ -15,7 +15,10 @@
 void dumpAddress(char *ipaddress)
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> parent of e986f0c... attempt to rewrite dumpaddress() to return string instead of just print it
 =======
 >>>>>>> parent of e986f0c... attempt to rewrite dumpaddress() to return string instead of just print it
 {
