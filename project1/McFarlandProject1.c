@@ -14,7 +14,10 @@
 //prints the formatted IP address
 void dumpAddress(char *ipaddress)
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> parent of e986f0c... attempt to rewrite dumpaddress() to return string instead of just print it
 {
   int ipaddressnumberbyte = (int)(ipaddress[0]);
   printf("%d",(unsigned char)ipaddressnumberbyte);
