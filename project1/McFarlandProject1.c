@@ -12,6 +12,12 @@
 #define IPADDRESSPREFIXSIZE 3
 #define BYTESIZE 1
 
+struct OrgPrefix
+{
+  char ipprefix[IPADDRESSPREFIXSIZE];
+  char *orgname;
+};
+
 //prints the formatted IP address
 void dumpAddress(char *ipaddress)
 {
@@ -34,6 +40,15 @@ void dumpPrefix(char *ipaddress)
     ipaddressnumberbyte = (int)(ipaddress[i]);
     printf(".%d",(unsigned char)ipaddressnumberbyte);
   }
+}
+
+//compiles the list of organizations' prefixes from the given file
+void compileOrgList(struct OrgPrefix *orgprefixlist, char *orgprefixfilename)
+{
+  //run through the file once to determine its size
+  //allocate an array big enough to hold the file info
+  //compile the list into the array
+
 }
 
 //sets argument flag and returns any options given
@@ -110,11 +125,13 @@ int main(int argc, char *argv[])
     flags[i] = 0;
   int input;
   char *ipaddressfilename;
+  char orgprefixfilename;
 
   //read input args into variables
   while((input = getopt(argc, argv, "ipo:L:")) != -1)
   {
     int prevLset = flags[3];
+    int prevoset = flags[2];
     char *option = parseInput(input, flags);
 
     //if the given argument is L, copy the input file name
@@ -122,8 +139,17 @@ int main(int argc, char *argv[])
     {
       //no need to check if null; already handled by getopt
       ipaddressfilename = option;
+    } //if it's o, copy the organization list file name
+    else if(prevoset == FALSE && flags[2] == TRUE)
+    {
+      orgprefixfilename = option;
     }
   }
+
+  //if -o flag set, compile the list of organizations and their prefixes
+  struct Orgprefixlist *orgprefixlist;
+  if(flags[2] == TRUE)
+    compileOrgList(orgprefixlist,orgprefixfilename);
 
   //ensure an input file is given
   if(flags[3] == FALSE)
