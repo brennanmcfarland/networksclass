@@ -3,14 +3,8 @@
 #include <stdio.h>
 #include <string.h> //for memset
 #include <fcntl.h> //for file operations
+#include "McFarlandProject1.h"
 
-#define TRUE 1
-#define FALSE 0
-#define NUMFLAGS 4
-#define FLAGSALLOCSIZE NUMFLAGS*sizeof(int)
-#define IPADDRESSSIZE 4
-#define IPADDRESSPREFIXSIZE 3
-#define BYTESIZE 1
 
 struct OrgPrefix
 {
@@ -45,10 +39,46 @@ void dumpPrefix(char *ipaddress)
 //compiles the list of organizations' prefixes from the given file
 void compileOrgList(struct OrgPrefix *orgprefixlist, char *orgprefixfilename)
 {
-  //run through the file once to determine its size
-  //allocate an array big enough to hold the file info
-  //compile the list into the array
+  //run through the file once to determine the number of lines
+  int orglistfile;
+  if((orglistfile = open(orgprefixfilename,O_RDONLY))<0)
+  {
+    printf("Failed to open file\n");
+    exit(-4);
+  }
 
+  char orglistfilechar = '0'; //initialized but always overwritten
+  char *orglistfilebuffer;
+  orglistfilebuffer = &orglistfilechar;
+  unsigned long orglistfilenumlines = 0;
+
+  while((readbyte(orglistfile, orglistfilebuffer)) != 1)
+  {
+    orglistfilechar = *(char *)(orglistfilebuffer);
+    //read until line ending reached to determine number of lines
+    if(orglistfilechar == '\n' || orglistfilechar == '\r')
+    {
+      orglistfilenumlines++;
+    }
+  }
+  close(orglistfile);
+  printf("Num bytes is %lu",orglistfilenumlines);
+
+  //allocate an array big enough to hold the file info
+  struct OrgPrefix orgprefixlistarray[orglistfilenumlines];
+
+  //compile the list into the array
+  if((orglistfile = open(orgprefixfilename,O_RDONLY))<0)
+  {
+    printf("Failed to open file\n");
+    exit(-4);
+  }
+
+  for(int i=0; i<orglistfilenumlines; i++)
+  {
+    //read ip address
+    //read organization name
+  }
 }
 
 //sets argument flag and returns any options given
@@ -125,7 +155,7 @@ int main(int argc, char *argv[])
     flags[i] = 0;
   int input;
   char *ipaddressfilename;
-  char orgprefixfilename;
+  char *orgprefixfilename;
 
   //read input args into variables
   while((input = getopt(argc, argv, "ipo:L:")) != -1)
@@ -147,7 +177,7 @@ int main(int argc, char *argv[])
   }
 
   //if -o flag set, compile the list of organizations and their prefixes
-  struct Orgprefixlist *orgprefixlist;
+  struct OrgPrefix *orgprefixlist = NULL;
   if(flags[2] == TRUE)
     compileOrgList(orgprefixlist,orgprefixfilename);
 
@@ -189,8 +219,8 @@ int main(int argc, char *argv[])
       {
         dumpPrefix(ipaddress);
       }
-      if(flags[0] == TRUE || flags[1] == TRUE || flags[2] == TRUE)
-        printf("\n");
+      //if(flags[0] == TRUE || flags[1] == TRUE || flags[2] == TRUE)
+      //  printf("\n");
     }
   }
 
