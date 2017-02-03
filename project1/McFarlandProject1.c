@@ -6,12 +6,6 @@
 #include "McFarlandProject1.h"
 
 
-struct OrgPrefix
-{
-  char ipprefix[IPADDRESSPREFIXSIZE];
-  char *orgname;
-};
-
 //prints the formatted IP address
 void dumpAddress(char *ipaddress)
 {
@@ -36,36 +30,65 @@ void dumpPrefix(char *ipaddress)
   }
 }
 
-//compiles the list of organizations' prefixes from the given file
-void compileOrgList(struct OrgPrefix *orgprefixlist, char *orgprefixfilename)
+//prints the organization associated with the given IP address
+void dumpOrg(char *ipaddress, OrgPrefix orgprefixlist[], int listsize)
+{
+  for(int i=0; i<listsize; i++)
+  {
+    if(memcmp(ipaddress, orgprefixlist[i].ipprefix, IPADDRESSPREFIXSIZE) == 0)
+    {
+      printf("%s", orgprefixlist[i].orgname);
+      return;
+    }
+  }
+  printf("Error: organization not found");
+  exit(10);
+}
+
+//returns the number of lines and max linelength of a file
+int getFileLines(char *filename, int *maxlinelength)
 {
   //run through the file once to determine the number of lines
-  int orglistfile;
-  if((orglistfile = open(orgprefixfilename,O_RDONLY))<0)
+  int filenum;
+  if((filenum = open(filename,O_RDONLY))<0)
   {
-    printf("Failed to open file\n");
+    printf("Failed to determine file size\n");
     exit(-4);
   }
 
+  char filechar = '0'; //initialized but always overwritten
+  char *filebuffer;
+  filebuffer = &filechar;
+  unsigned long filenumlines = 0;
+  int linelength = 0;
+  int maxlinelengthvalue = 0;
+  maxlinelength = &maxlinelengthvalue;
+
+  while((readbyte(filenum, filebuffer)) != 1)
+  {
+    filechar = *(char *)(filebuffer);
+    linelength++;
+    //read until line ending reached to determine number of lines and max length
+    if(filechar == '\n' || filechar == '\r')
+    {
+      filenumlines++;
+      if(linelength > *maxlinelength)
+      {
+        *maxlinelength = linelength;
+        linelength = 0;
+      }
+    }
+  }
+  close(filenum);
+  return filenumlines;
+}
+//compiles the list of organizations' prefixes from the given file
+void compileOrgList(OrgPrefix orgprefixlist[], char *orgprefixfilename, int orglistfilenumlines, int *maxlinelength)
+{
+  int orglistfile;
   char orglistfilechar = '0'; //initialized but always overwritten
   char *orglistfilebuffer;
   orglistfilebuffer = &orglistfilechar;
-  unsigned long orglistfilenumlines = 0;
-
-  while((readbyte(orglistfile, orglistfilebuffer)) != 1)
-  {
-    orglistfilechar = *(char *)(orglistfilebuffer);
-    //read until line ending reached to determine number of lines
-    if(orglistfilechar == '\n' || orglistfilechar == '\r')
-    {
-      orglistfilenumlines++;
-    }
-  }
-  close(orglistfile);
-  printf("Num bytes is %lu",orglistfilenumlines);
-
-  //allocate an array big enough to hold the file info
-  struct OrgPrefix orgprefixlistarray[orglistfilenumlines];
 
   //compile the list into the array
   if((orglistfile = open(orgprefixfilename,O_RDONLY))<0)
@@ -74,10 +97,58 @@ void compileOrgList(struct OrgPrefix *orgprefixlist, char *orgprefixfilename)
     exit(-4);
   }
 
+  char ipaddressdecimalbuffer[IPADDRESSDECIMALBUFFERSIZE];
+  int ipaddressdecimalbufferindex;
+  char ipprefix[IPADDRESSPREFIXSIZE];
+
   for(int i=0; i<orglistfilenumlines; i++)
   {
-    //read ip address
+    //read ip address byte by byte
+    for(int j=0; j<IPADDRESSPREFIXSIZE; j++)
+    {
+      ipaddressdecimalbufferindex = 0;
+      do {
+        if(readbyte(orglistfile, orglistfilebuffer) == 1)
+        {
+          if(i < orglistfilenumlines-1)
+            return;
+          printf("Error: bad input data in organization list file");
+          exit(-5);
+        }
+        orglistfilechar = *(char *)(orglistfilebuffer);
+        ipaddressdecimalbuffer[ipaddressdecimalbufferindex] = orglistfilechar;
+        ipaddressdecimalbufferindex++;
+      } while(orglistfilechar != '.' && orglistfilechar != ' ');
+      //and reset unused array elements
+      while(ipaddressdecimalbufferindex < 3)
+      {
+        ipaddressdecimalbuffer[ipaddressdecimalbufferindex] = '\n';
+        ipaddressdecimalbufferindex++;
+      }
+      ipprefix[j] = atoi(ipaddressdecimalbuffer);
+      printf("String: %s, Integer: %d", ipprefix, (unsigned char)ipprefix[j]);
+    }
     //read organization name
+    char orglistfilelinebuffer[*maxlinelength];
+    int orglistfilelinecharindex = 0;
+    memset((void *)orglistfilelinebuffer,0x0,*maxlinelength);
+    do {
+      if(readbyte(orglistfile, orglistfilebuffer) == 1)
+      {
+        if(i < orglistfilenumlines-1)
+          return;
+        printf("Error: bad input data in organization list file");
+        exit(-5);
+      }
+      orglistfilechar = *(char *)(orglistfilebuffer);
+      orglistfilelinebuffer[orglistfilelinecharindex] = orglistfilechar;
+      printf("| %c ", orglistfilechar);
+      orglistfilelinecharindex++;
+    }while(orglistfilechar != '\n' && orglistfilechar != '\r');
+    //and dump them both in the struct
+    for(int k=0; k<IPADDRESSPREFIXSIZE; k++)
+      (*orgprefixlist)[i].ipprefix[k] = ipprefix[k];
+    (*orgprefixlist)[i].orgname = orglistfilelinebuffer;
   }
 }
 
@@ -176,10 +247,30 @@ int main(int argc, char *argv[])
     }
   }
 
+  int orglistfilelines = 0;
+  OrgPrefix orgprefixlistarray = NULL;
   //if -o flag set, compile the list of organizations and their prefixes
-  struct OrgPrefix *orgprefixlist = NULL;
   if(flags[2] == TRUE)
-    compileOrgList(orgprefixlist,orgprefixfilename);
+  {
+    int maxlinelengthvalue = 0;
+    int *maxlinelength;
+    maxlinelength = &maxlinelengthvalue;
+    orglistfilelines = getFileLines(orgprefixfilename, maxlinelength);
+    OrgPrefix orgprefixlistarray[orglistfilelines];
+    //OrgPrefix **orgprefixlist;
+
+    //allocate memory for the array
+    for(int i=0; i<*maxlinelength; i++)
+    {
+      for(int j=0; j<IPADDRESSPREFIXSIZE; j++)
+      {
+        orgprefixlistarray[i].ipprefix[j] = '0';
+      }
+      orgprefixlistarray[i].orgname = (char *)(safemalloc(*maxlinelength));
+    }
+    //orgprefixlist = &orgprefixlistarray;
+    compileOrgList((OrgPrefix [])orgprefixlistarray, orgprefixfilename, orglistfilelines, maxlinelength);
+  }
 
   //ensure an input file is given
   if(flags[3] == FALSE)
@@ -218,6 +309,10 @@ int main(int argc, char *argv[])
       if(flags[1] == TRUE)
       {
         dumpPrefix(ipaddress);
+      }
+      if(flags[2] == TRUE)
+      {
+        dumpOrg(ipaddress, (OrgPrefix [])orgprefixlistarray, orglistfilelines);
       }
       //if(flags[0] == TRUE || flags[1] == TRUE || flags[2] == TRUE)
       //  printf("\n");
