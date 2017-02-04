@@ -83,7 +83,7 @@ int getFileLines(char *filename, int *maxlinelength)
   return filenumlines;
 }
 //compiles the list of organizations' prefixes from the given file
-void compileOrgList(OrgPrefix orgprefixlist[], char *orgprefixfilename, int orglistfilenumlines, int *maxlinelength)
+void compileOrgList(OrgPrefix *orgprefixlist, char *orgprefixfilename, int orglistfilenumlines, int *maxlinelength)
 {
   int orglistfile;
   char orglistfilechar = '0'; //initialized but always overwritten
@@ -147,8 +147,8 @@ void compileOrgList(OrgPrefix orgprefixlist[], char *orgprefixfilename, int orgl
     }while(orglistfilechar != '\n' && orglistfilechar != '\r');
     //and dump them both in the struct
     for(int k=0; k<IPADDRESSPREFIXSIZE; k++)
-      (*orgprefixlist)[i].ipprefix[k] = ipprefix[k];
-    (*orgprefixlist)[i].orgname = orglistfilelinebuffer;
+      orgprefixlist[i].ipprefix[k] = ipprefix[k]; //the segfault happens here
+    orgprefixlist[i].orgname = orglistfilelinebuffer;
   }
 }
 
@@ -248,17 +248,17 @@ int main(int argc, char *argv[])
   }
 
   int orglistfilelines = 0;
-  OrgPrefix orgprefixlistarray = NULL;
+  int *maxlinelength;
+  int maxlinelengthvalue = 0;
+  maxlinelength = &maxlinelengthvalue;
   //if -o flag set, compile the list of organizations and their prefixes
   if(flags[2] == TRUE)
   {
-    int maxlinelengthvalue = 0;
-    int *maxlinelength;
-    maxlinelength = &maxlinelengthvalue;
     orglistfilelines = getFileLines(orgprefixfilename, maxlinelength);
-    OrgPrefix orgprefixlistarray[orglistfilelines];
-    //OrgPrefix **orgprefixlist;
-
+  }
+  OrgPrefix orgprefixlistarray[orglistfilelines];
+  if(flags[2] == TRUE)
+  {
     //allocate memory for the array
     for(int i=0; i<*maxlinelength; i++)
     {
@@ -269,7 +269,7 @@ int main(int argc, char *argv[])
       orgprefixlistarray[i].orgname = (char *)(safemalloc(*maxlinelength));
     }
     //orgprefixlist = &orgprefixlistarray;
-    compileOrgList((OrgPrefix [])orgprefixlistarray, orgprefixfilename, orglistfilelines, maxlinelength);
+    compileOrgList(orgprefixlistarray, orgprefixfilename, orglistfilelines, maxlinelength);
   }
 
   //ensure an input file is given
@@ -312,7 +312,7 @@ int main(int argc, char *argv[])
       }
       if(flags[2] == TRUE)
       {
-        dumpOrg(ipaddress, (OrgPrefix [])orgprefixlistarray, orglistfilelines);
+        dumpOrg(ipaddress, orgprefixlistarray, orglistfilelines);
       }
       //if(flags[0] == TRUE || flags[1] == TRUE || flags[2] == TRUE)
       //  printf("\n");
