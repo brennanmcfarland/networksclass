@@ -1,7 +1,7 @@
-McFarlandProject1: McFarlandProject1.o
-	gcc -o proj1 McFarlandProject1.o
-McFarlandProject1.o: McFarlandProject1.c McFarlandProject1.h
-	gcc -c -g -Werror -Wall McFarlandProject1.c
+McFarlandProject2: McFarlandProject2.o
+	gcc -o proj2 McFarlandProject2.o
+McFarlandProject2.o: McFarlandProject2.c McFarlandProject2.h
+	gcc -c -g -Werror -Wall McFarlandProject2.c
 clean:
 	rm -f *.o
-	rm -f proj1
+	rm -f proj2

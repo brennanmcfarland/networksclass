@@ -1,44 +1,34 @@
 /*
   Brennan McFarland
   bfm21
-  McFarlandProject1.h
-  02/04/2017
-  The header for McFarlandProject1.c
+  McFarlandProject2.h
+  [DATE]
+  The header for McFarlandProject2.c
 */
 #define TRUE 1
 #define FALSE 0
-#define INDEXINITIALIZER 0
-#define SKIPINDEXINITIALIZER 1
-#define TALLYINITIALIZER 0
-#define RETURNSUCCESS 0
-#define RETURNFAILURE 1
-#define RETURNERROR 255
-#define ERRORCODE2 -2
-#define ERRORCODE3 -3
-#define ERRORCODE4 -4
-#define ERRORCODE5 -5
-#define NUMFLAGS 4
-#define FLAGSALLOCSIZE NUMFLAGS*sizeof(int)
+
+#define NUMFLAGS 7
+#define FLAG_TRACEFILENAME 0
+#define FLAG_PRINTTRACESUMMARY 1
+#define FLAG_PRINTETHERNETHEADERS 2
+#define FLAG_PRINTIPHEADERS 3
+#define FLAG_PRINTPACKETTYPES 4
+#define FLAG_PRINTTRAFFICMATRIX 5
+#define FLAG_VERBOSEOUTPUT 6
+
 #define IPADDRESSSIZE 4
-#define IPADDRESSPREFIXSIZE 3
+#define FLAGSALLOCSIZE NUMFLAGS*sizeof(int)
 #define BYTESIZE 1
-#define IPADDRESSDECIMALBUFFERSIZE 3
 
-#define FLAGA 0
-#define FLAGB 1
-#define FLAGC 2
-#define FLAGD 3
-
-typedef struct OrgPrefix
+typedef struct PacketMetaInfo
 {
-  char ipprefix[IPADDRESSPREFIXSIZE];
-  char *orgname;
-} OrgPrefix;
-void dumpAddress(char *ipaddress);
-void dumpPrefix(char *ipaddress);
-void dumpOrg(char *ipaddress, struct OrgPrefix orgprefixlist[], int listsize);
-int getFileLines(char *filename, int *maxlinelength);
-void compileOrgList(struct OrgPrefix orgprefixlist[], char *orgprefixfilename, int orglistfilenumlines, int maxlinelengthvalue);
+  unsigned int meta_secsinceepoch;
+  unsigned int meta_msecsincesec;
+  unsigned short meta_caplen;
+  unsigned short meta_ignored;
+} PacketMetaInfo;
+
+void dumpIPAddress(char *ipaddress);
 char *parseInput(int input, int flags[]);
-int readbyte(int file, char *readbyte);
 void *safemalloc (unsigned int sz);
