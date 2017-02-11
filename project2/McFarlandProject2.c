@@ -8,10 +8,15 @@
 
 #include <unistd.h> //for getopt and file operations
 #include <stdlib.h>
-#include <stdio.h>
-#include <string.h> //for memset and file operations
+#include <stdio.h> //for file operations
+#include <string.h> //for memset
 #include "McFarlandProject2.h"
 
+/*
+  TODO
+  -may need to break up main function into components
+  -wrap long lines
+*/
 
 //formats and prints a single IP address
 void dumpIPAddress(char *ipaddress)
@@ -66,6 +71,17 @@ char *parseInput(int input, int flags[])
     return NULL;
 }
 
+int safeRead(FILE *filestream, void *readbuffer, int readbuffersize)
+{
+  int readresult = fread(readbuffer,BYTESIZE,readbuffersize,filestream);
+  if(readresult == 0 && ferror(filestream) != 0)
+  {
+    printf("Error reading from file.\n");
+    exit(1);
+  }
+  return readresult;
+}
+
 void *safemalloc (unsigned int sz)
 {
     void *p;
@@ -86,6 +102,7 @@ int main(int argc, char *argv[])
     flags[i] = FALSE;
   int input;
   char *tracefilename;
+  FILE *tracefilestream = NULL;
 
   //read input args into variables
   while((input = getopt(argc, argv, "seitmvr:")) != -1)
@@ -100,9 +117,40 @@ int main(int argc, char *argv[])
       tracefilename = option;
     }
   }
+  if(flags[FLAG_TRACEFILENAME] == FALSE)
+  {
+    printf("Error: must specify an input file.\n");
+    return 1;
+  }
 
   if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
-    printf("input file name: %s",tracefilename);
+    printf("input file name: %s\n",tracefilename);
+
+  //read the packet trace from the file until finished
+  char filemode_read = 'r';
+  char *filemode = &filemode_read;
+  if((tracefilestream = fopen(tracefilename,filemode)) == NULL)
+  {
+    printf("Error: Unable to read from file.\n");
+    exit(1);
+  }
+
+  PacketMetaInfo tracepacketmetainfo = *(PacketMetaInfo *)safemalloc(sizeof(PacketMetaInfo));
+  PacketMetaInfo *tracepacketmetainfobuffer = &tracepacketmetainfo;
+  //read packet metadata
+  while(safeRead(tracefilestream, (void *)tracepacketmetainfobuffer,sizeof(tracepacketmetainfo)) != 0)
+  {
+    if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
+      printf("Reading packet...\n");
+
+    /*
+      remaining stuff goes here, don't forget to make sure it reads the rest
+      of the bytes in each packet so it isn't off
+    */
+  }
+
+  if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
+    printf("Reached end of file.\n");
 
   return 0;
 }
