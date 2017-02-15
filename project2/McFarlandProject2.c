@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h> //for file operations
 #include <string.h> //for memset
+#include <arpa/inet.h> //for converting between network and host order
 #include "McFarlandProject2.h"
 
 /*
@@ -29,6 +30,15 @@ void dumpIPAddress(char *ipaddress)
     ipaddressnumberbyte = (int)(ipaddress[i]);
     printf(".%d",(unsigned char)ipaddressnumberbyte);
   }
+}
+
+//converts data in packetmetainfo to host order
+void packetMetaInfoNtohl(PacketMetaInfo * packetmetainfo)
+{
+  packetmetainfo->meta_secsinceepoch = ntohl(packetmetainfo->meta_secsinceepoch);
+  packetmetainfo->meta_msecsincesec = ntohl(packetmetainfo->meta_msecsincesec);
+  packetmetainfo->meta_ignored = ntohl(packetmetainfo->meta_msecsincesec);
+  packetmetainfo->meta_caplen = ntohl(packetmetainfo->meta_caplen);
 }
 
 //sets argument flag and returns any options given
@@ -137,17 +147,21 @@ int main(int argc, char *argv[])
 
   PacketMetaInfo tracepacketmetainfo = *(PacketMetaInfo *)safemalloc(sizeof(PacketMetaInfo));
   PacketMetaInfo *tracepacketmetainfobuffer = &tracepacketmetainfo;
+  memset(tracepacketmetainfobuffer,FALSE, sizeof(PacketMetaInfo));
   //read packet metadata
-  while(safeRead(tracefilestream, (void *)tracepacketmetainfobuffer,sizeof(tracepacketmetainfo)) != 0)
+  //works now except caplen is coming back 0, is it switched with ignore?
+  while(safeRead(tracefilestream, (void *)tracepacketmetainfobuffer,sizeof(PacketMetaInfo)) != 0)
   {
     if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
       printf("Reading packet...\n");
 
-    /*
-      remaining stuff goes here, don't forget to make sure it reads the rest
-      of the bytes in each packet so it isn't off
-    */
+    packetMetaInfoNtohl(tracepacketmetainfobuffer);
+
+    //read the rest of the bytes in the packet
+
   }
+
+  //printf("%d", (unsigned int)((*(PacketMetaInfo *)(tracepacketheaderbuffer)).meta_secsinceepoch));
 
   if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
     printf("Reached end of file.\n");
