@@ -37,8 +37,8 @@ void packetMetaInfoNtohl(PacketMetaInfo * packetmetainfo)
 {
   packetmetainfo->meta_secsinceepoch = ntohl(packetmetainfo->meta_secsinceepoch);
   packetmetainfo->meta_msecsincesec = ntohl(packetmetainfo->meta_msecsincesec);
-  packetmetainfo->meta_ignored = ntohl(packetmetainfo->meta_msecsincesec);
-  packetmetainfo->meta_caplen = ntohl(packetmetainfo->meta_caplen);
+  packetmetainfo->meta_ignored = ntohs(packetmetainfo->meta_msecsincesec);
+  packetmetainfo->meta_caplen = ntohs(packetmetainfo->meta_caplen);
 }
 
 //sets argument flag and returns any options given
