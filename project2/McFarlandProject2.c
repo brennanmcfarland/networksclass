@@ -19,6 +19,15 @@
   -wrap long lines
 */
 
+//prints packet trace summary
+void printTraceSummary(int numpackets, double firstpackettimestamp, double lastpackettimestamp)
+{
+  printf("PACKETS: %d\n", numpackets);
+  printf("FIRST: %.6f\n", firstpackettimestamp);
+  printf("LAST: %.6f\n", lastpackettimestamp);
+  printf("DURATION: %.6f\n", lastpackettimestamp-firstpackettimestamp);
+}
+
 //formats and prints a single IP address
 void dumpIPAddress(char *ipaddress)
 {
@@ -39,6 +48,17 @@ void packetMetaInfoNtohl(PacketMetaInfo * packetmetainfo)
   packetmetainfo->meta_msecsincesec = ntohl(packetmetainfo->meta_msecsincesec);
   packetmetainfo->meta_ignored = ntohs(packetmetainfo->meta_msecsincesec);
   packetmetainfo->meta_caplen = ntohs(packetmetainfo->meta_caplen);
+}
+
+//given an integer, formats as a decimal value trailing the decimal point
+double formatAsTrailingDecimal(int integerdigits)
+{
+  double trailingdecimal = (double)integerdigits;
+  while(trailingdecimal >= 1.0)
+  {
+    trailingdecimal = trailingdecimal/10;
+  }
+  return trailingdecimal;
 }
 
 //sets argument flag and returns any options given
@@ -148,23 +168,38 @@ int main(int argc, char *argv[])
   PacketMetaInfo tracepacketmetainfo = *(PacketMetaInfo *)safemalloc(sizeof(PacketMetaInfo));
   PacketMetaInfo *tracepacketmetainfobuffer = &tracepacketmetainfo;
   memset(tracepacketmetainfobuffer,FALSE, sizeof(PacketMetaInfo));
+  int numpackets = 0;
+  double firstpackettimestamp = -1.0; //default value to signal not set
+
+  //for every packet
   //read packet metadata
-  //works now except caplen is coming back 0, is it switched with ignore?
   while(safeRead(tracefilestream, (void *)tracepacketmetainfobuffer,sizeof(PacketMetaInfo)) != 0)
   {
     if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
       printf("Reading packet...\n");
 
+    numpackets++;
     packetMetaInfoNtohl(tracepacketmetainfobuffer);
+    if(firstpackettimestamp == -1.0)
+    {
+      firstpackettimestamp = (double)tracepacketmetainfo.meta_secsinceepoch
+        +formatAsTrailingDecimal(tracepacketmetainfo.meta_msecsincesec);
+    }
 
     //read the rest of the bytes in the packet
 
   }
 
+  double lastpackettimestamp = (double)tracepacketmetainfo.meta_secsinceepoch
+    +formatAsTrailingDecimal(tracepacketmetainfo.meta_msecsincesec);
+
   //printf("%d", (unsigned int)((*(PacketMetaInfo *)(tracepacketheaderbuffer)).meta_secsinceepoch));
 
   if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
     printf("Reached end of file.\n");
+
+  if(flags[FLAG_PRINTTRACESUMMARY] == TRUE)
+    printTraceSummary(numpackets, firstpackettimestamp, lastpackettimestamp);
 
   return 0;
 }
