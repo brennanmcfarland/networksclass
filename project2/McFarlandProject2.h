@@ -29,6 +29,10 @@ typedef struct PacketMetaInfo
   unsigned short meta_ignored;
 } PacketMetaInfo;
 
+void printTraceSummary(int numpackets, double firstpackettimestamp, double lastpackettimestamp);
 void dumpIPAddress(char *ipaddress);
+void packetMetaInfoNtohl(PacketMetaInfo * packetmetainfo);
+double formatAsTrailingDecimal(int integerdigits);
 char *parseInput(int input, int flags[]);
+int safeRead(FILE *filestream, void *readbuffer, int readbuffersize);
 void *safemalloc (unsigned int sz);

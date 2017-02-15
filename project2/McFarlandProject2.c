@@ -171,6 +171,11 @@ int main(int argc, char *argv[])
   int numpackets = 0;
   double firstpackettimestamp = -1.0; //default value to signal not set
 
+  /*
+    TODO: may want to put this all in a separate method so main isn't huge,
+    but get it to work first, may not be worth passing all the arguments
+    back and forth
+  */
   //for every packet
   //read packet metadata
   while(safeRead(tracefilestream, (void *)tracepacketmetainfobuffer,sizeof(PacketMetaInfo)) != 0)
@@ -192,8 +197,6 @@ int main(int argc, char *argv[])
 
   double lastpackettimestamp = (double)tracepacketmetainfo.meta_secsinceepoch
     +formatAsTrailingDecimal(tracepacketmetainfo.meta_msecsincesec);
-
-  //printf("%d", (unsigned int)((*(PacketMetaInfo *)(tracepacketheaderbuffer)).meta_secsinceepoch));
 
   if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
     printf("Reached end of file.\n");
