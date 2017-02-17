@@ -42,12 +42,18 @@ void dumpIPAddress(char *ipaddress)
 }
 
 //converts data in packetmetainfo to host order
-void packetMetaInfoNtohl(PacketMetaInfo * packetmetainfo)
+void packetMetaInfoToHostOrder(PacketMetaInfo * packetmetainfo)
 {
   packetmetainfo->meta_secsinceepoch = ntohl(packetmetainfo->meta_secsinceepoch);
   packetmetainfo->meta_msecsincesec = ntohl(packetmetainfo->meta_msecsincesec);
   packetmetainfo->meta_ignored = ntohs(packetmetainfo->meta_msecsincesec);
   packetmetainfo->meta_caplen = ntohs(packetmetainfo->meta_caplen);
+}
+
+//converts data in packetethernetheader to host order
+void PacketEthernetHeaderToHostOrder(PacketEthernetHeader * packetethernetheader)
+{
+  packetethernetheader->eth_protocoltype = ntohs(packetethernetheader->eth_protocoltype);
 }
 
 //given an integer, formats as a decimal value trailing the decimal point
@@ -184,7 +190,7 @@ int main(int argc, char *argv[])
       printf("Reading packet...\n");
 
     numpackets++;
-    packetMetaInfoNtohl(tracepacketmetainfobuffer);
+    packetMetaInfoToHostOrder(tracepacketmetainfobuffer);
     if(firstpackettimestamp == -1.0)
     {
       firstpackettimestamp = (double)tracepacketmetainfo.meta_secsinceepoch
@@ -192,6 +198,7 @@ int main(int argc, char *argv[])
     }
 
     //read the rest of the bytes in the packet
+
 
   }
 
