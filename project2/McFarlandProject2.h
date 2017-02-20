@@ -17,7 +17,8 @@
 #define FLAG_PRINTTRAFFICMATRIX 5
 #define FLAG_VERBOSEOUTPUT 6
 
-#define IPADDRESSSIZE 6
+#define MACADDRESSSIZE 6
+#define IPADDRESSSIZE 4
 #define FLAGSALLOCSIZE NUMFLAGS*sizeof(int)
 #define BYTESIZE 1
 
@@ -31,15 +32,17 @@ typedef struct PacketMetaInfo
 
 typedef struct PacketEthernetHeader
 {
-  char eth_destaddress[IPADDRESSSIZE];
-  char eth_srcaddress[IPADDRESSSIZE];
+  char eth_destaddress[MACADDRESSSIZE];
+  char eth_srcaddress[MACADDRESSSIZE];
   unsigned short eth_protocoltype;
 } PacketEthernetHeader;
 
 void printTraceSummary(int numpackets, double firstpackettimestamp, double lastpackettimestamp);
+void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destinationaddress);
 void dumpIPAddress(char *ipaddress);
 void packetMetaInfoToHostOrder(PacketMetaInfo * packetmetainfo);
 void PacketEthernetHeaderToHostOrder(PacketEthernetHeader * packetethernetheader);
+int testStringEquality(char *string1, char *string2);
 double formatAsTrailingDecimal(int integerdigits);
 char *parseInput(int input, int flags[]);
 int safeRead(FILE *filestream, void *readbuffer, int readbuffersize);

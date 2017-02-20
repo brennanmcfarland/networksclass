@@ -11,6 +11,8 @@
 #include <stdio.h> //for file operations
 #include <string.h> //for memset
 #include <arpa/inet.h> //for converting between network and host order
+#include <netinet/ip.h> //for the iphdr struct
+#include "Hashtable.c"
 #include "McFarlandProject2.h"
 
 /*
@@ -26,6 +28,16 @@ void printTraceSummary(int numpackets, double firstpackettimestamp, double lastp
   printf("FIRST: %.6f\n", firstpackettimestamp);
   printf("LAST: %.6f\n", lastpackettimestamp);
   printf("DURATION: %.6f\n", lastpackettimestamp-firstpackettimestamp);
+}
+
+//prints ethernet header info
+void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destinationaddress)
+{
+  char *truncatedethernetheadermessage = "Ethernet-truncated"; //double check to make sure it's the same
+  if(testStringEquality(sourceaddress,truncatedethernetheadermessage))
+    printf("%.6f %s\n", timestamp, truncatedethernetheadermessage);
+  else
+    printf("%.6f %s %s\n", timestamp, sourceaddress, destinationaddress);
 }
 
 //formats and prints a single IP address
@@ -54,6 +66,20 @@ void packetMetaInfoToHostOrder(PacketMetaInfo * packetmetainfo)
 void PacketEthernetHeaderToHostOrder(PacketEthernetHeader * packetethernetheader)
 {
   packetethernetheader->eth_protocoltype = ntohs(packetethernetheader->eth_protocoltype);
+}
+
+//returns whether 2 strings are equal
+int testStringEquality(char *string1, char *string2)
+{
+  if(sizeof(string1) != sizeof(string2))
+    return FALSE;
+  int i;
+  for(i=0; i<sizeof(string1); i++)
+  {
+    if(string1[i] != string2[i])
+      return FALSE;
+  }
+  return TRUE;
 }
 
 //given an integer, formats as a decimal value trailing the decimal point
@@ -197,9 +223,15 @@ int main(int argc, char *argv[])
         +formatAsTrailingDecimal(tracepacketmetainfo.meta_msecsincesec);
     }
 
-    //read the rest of the bytes in the packet
+    //read ethernet header
+    if(tracepacketmetainfo.meta_caplen >= sizeof(PacketEthernetHeader))
+    {
 
-
+    }
+    else if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE )
+      printEthernetHeaderInfo((double)tracepacketmetainfo.meta_secsinceepoch
+        +formatAsTrailingDecimal(tracepacketmetainfo.meta_msecsincesec),
+        "Ethernet-truncated", "Ethernet-truncated"); //ethernet header source and dest addreeeses
   }
 
   double lastpackettimestamp = (double)tracepacketmetainfo.meta_secsinceepoch
@@ -211,5 +243,7 @@ int main(int argc, char *argv[])
   if(flags[FLAG_PRINTTRACESUMMARY] == TRUE)
     printTraceSummary(numpackets, firstpackettimestamp, lastpackettimestamp);
 
+  struct iphdr test = safemalloc(sizeof(struct iphdr));
+  printf("%d",sizeof(test));
   return 0;
 }

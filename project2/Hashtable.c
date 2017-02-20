@@ -1,0 +1,9 @@
+/*
+  IMPLEMENT GENERIC HASHTABLE HERE TO USE IN THIS AND FUTURE PROJECTS
+  JUST include
+  FOLLOW TEXTBOOK EXAMPLE
+*/
+typedef struct Hashtable
+{
+
+} Hashtable;
