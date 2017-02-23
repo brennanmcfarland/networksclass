@@ -11,7 +11,6 @@
 #include <stdio.h> //for file operations
 #include <string.h> //for memset
 #include <arpa/inet.h> //for converting between network and host order
-#include <netinet/ip.h> //for the iphdr struct
 #include "Hashtable.c"
 #include "McFarlandProject2.h"
 
@@ -243,7 +242,8 @@ int main(int argc, char *argv[])
   if(flags[FLAG_PRINTTRACESUMMARY] == TRUE)
     printTraceSummary(numpackets, firstpackettimestamp, lastpackettimestamp);
 
+  //it still says this is an invalid initializer, figure out why
   struct iphdr test = safemalloc(sizeof(struct iphdr));
-  printf("%d",sizeof(test));
+  printf("%lu",sizeof(test));
   return 0;
 }
