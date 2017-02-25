@@ -38,12 +38,14 @@ typedef struct PacketEthernetHeader
 } PacketEthernetHeader;
 
 void printTraceSummary(int numpackets, double firstpackettimestamp, double lastpackettimestamp);
-void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destinationaddress);
-void dumpIPAddress(char *ipaddress);
+void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destinationaddress, unsigned short protocoltype);
+void printMACAddress(char *macaddress);
+void printIPAddress(char *ipaddress);
 void analyzePacketTrace(FILE *tracefilestream, int flags[]);
 void packetMetaInfoToHostOrder(PacketMetaInfo * packetmetainfo);
 void PacketEthernetHeaderToHostOrder(PacketEthernetHeader * packetethernetheader);
 int testStringEquality(char *string1, char *string2);
+double formatTimeStamp(int secsinceepoch, int msecsinsec);
 double formatAsTrailingDecimal(int integerdigits);
 void parseInput(int argc, char *argv[], int *flags, char **tracefilename);
 char *parseInputArg(int inputargtoparse, int flags[]);

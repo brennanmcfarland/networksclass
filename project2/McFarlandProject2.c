@@ -33,17 +33,40 @@ void printTraceSummary(int numpackets, double firstpackettimestamp, double lastp
 }
 
 //prints ethernet header info
-void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destinationaddress)
+void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destinationaddress, unsigned short protocoltype)
 {
   char *truncatedethernetheadermessage = "Ethernet-truncated"; //double check to make sure it's the same
   if(testStringEquality(sourceaddress,truncatedethernetheadermessage))
+  {
     printf("%.6f %s\n", timestamp, truncatedethernetheadermessage);
+  }
   else
-    printf("%.6f %s %s\n", timestamp, sourceaddress, destinationaddress);
+  {
+    printf("%.6f ", timestamp);
+    printMACAddress(sourceaddress);
+    printf(" ");
+    printMACAddress(destinationaddress);
+    printf(" ");
+    //if the least significant byte is nonzero it appends 0s
+    printf("0x%02x%02x\n", protocoltype & 0x00ff, (protocoltype & 0xff00)/0xff);
+  }
+}
+
+//formats and prints a single MAC address
+void printMACAddress(char macaddress[MACADDRESSSIZE])
+{
+  int macaddressnumberbyte = (int)(macaddress[0]);
+  printf("%02x",(unsigned char)macaddressnumberbyte);
+  int i;
+  for(i=1; i<MACADDRESSSIZE; i++)
+  {
+    macaddressnumberbyte = (int)(macaddress[i]);
+    printf(":%02x",(unsigned char)macaddressnumberbyte);
+  }
 }
 
 //formats and prints a single IP address
-void dumpIPAddress(char *ipaddress)
+void printIPAddress(char ipaddress[IPADDRESSSIZE])
 {
   int ipaddressnumberbyte = (int)(ipaddress[0]);
   printf("%d",(unsigned char)ipaddressnumberbyte);
@@ -84,8 +107,8 @@ void analyzePacketTrace(FILE *tracefilestream, int flags[])
     packetMetaInfoToHostOrder(tracepacketmetainfobuffer);
     if(firstpackettimestamp == -1.0)
     {
-      firstpackettimestamp = (double)tracepacketmetainfo.meta_secsinceepoch
-        +formatAsTrailingDecimal(tracepacketmetainfo.meta_msecsincesec);
+      firstpackettimestamp = formatTimeStamp(
+        tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec);
     }
 
     //read ethernet header
@@ -93,11 +116,16 @@ void analyzePacketTrace(FILE *tracefilestream, int flags[])
     {
       safeRead(tracefilestream, (void *)tracepacketethernetheaderbuffer, sizeof(PacketEthernetHeader));
       tracepacketmetainfo.meta_caplen -= sizeof(PacketEthernetHeader);
+      if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE)
+        printEthernetHeaderInfo(formatTimeStamp(
+          tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
+          tracepacketethernetheader.eth_srcaddress, tracepacketethernetheader.eth_destaddress,
+          tracepacketethernetheader.eth_protocoltype);
     }
     else if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE )
-      printEthernetHeaderInfo((double)tracepacketmetainfo.meta_secsinceepoch
-        +formatAsTrailingDecimal(tracepacketmetainfo.meta_msecsincesec),
-        "Ethernet-truncated", "Ethernet-truncated");
+      printEthernetHeaderInfo(formatTimeStamp(
+        tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
+        "Ethernet-truncated", "Ethernet-truncated", 0);
     //read ip header
     if(tracepacketmetainfo.meta_caplen >= sizeof(struct iphdr))
     {
@@ -106,16 +134,16 @@ void analyzePacketTrace(FILE *tracefilestream, int flags[])
     }
     else if(flags[FLAG_PRINTIPHEADERS] == TRUE)
     {
-      printEthernetHeaderInfo((double)tracepacketmetainfo.meta_secsinceepoch
-        +formatAsTrailingDecimal(tracepacketmetainfo.meta_msecsincesec),
-        "IP-truncated", "IP-truncated");
+      printEthernetHeaderInfo(formatTimeStamp(
+        tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
+        "IP-truncated", "IP-truncated",0);
     }
     //read any remaining bits
     safeRead(tracefilestream, safeMalloc(tracepacketmetainfo.meta_caplen), tracepacketmetainfo.meta_caplen);
   }
 
-  double lastpackettimestamp = (double)tracepacketmetainfo.meta_secsinceepoch
-    +formatAsTrailingDecimal(tracepacketmetainfo.meta_msecsincesec);
+  double lastpackettimestamp = formatTimeStamp(
+    tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec);
 
   if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
     printf("Reached end of file.\n");
@@ -153,17 +181,19 @@ int testStringEquality(char *string1, char *string2)
   return TRUE;
 }
 
+//formats timestamp data for output
+double formatTimeStamp(int secsinceepoch, int msecsincesec)
+{
+  return (double)secsinceepoch+formatAsTrailingDecimal(msecsincesec);
+}
+
 //given an integer, formats as a decimal value trailing the decimal point
 double formatAsTrailingDecimal(int integerdigits)
 {
   double trailingdecimal = (double)integerdigits;
   trailingdecimal = trailingdecimal/1000000;
   return trailingdecimal;
-  //while(trailingdecimal >= 1.0)
-  //{
-  //  trailingdecimal = trailingdecimal/10;
-  //}
-  //return trailingdecimal;
+
 }
 
 //handles parsing of all user input arguments, sets flags and vars appropriately
