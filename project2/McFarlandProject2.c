@@ -19,6 +19,8 @@
   TODO
   -may need to break up main function into components
   -wrap long lines
+  -there's a bug in -s, run with sample B gives incorrect ms for end and incorrect duration
+  -may want to move location of analyzePacketTrace, not sure
 */
 
 //prints packet trace summary
@@ -51,6 +53,75 @@ void dumpIPAddress(char *ipaddress)
     ipaddressnumberbyte = (int)(ipaddress[i]);
     printf(".%d",(unsigned char)ipaddressnumberbyte);
   }
+}
+
+//analyzes the packet trace as specified by the user input
+void analyzePacketTrace(FILE *tracefilestream, int flags[])
+{
+  PacketMetaInfo tracepacketmetainfo = *(PacketMetaInfo *)safeMalloc(sizeof(PacketMetaInfo));
+  PacketMetaInfo *tracepacketmetainfobuffer = &tracepacketmetainfo;
+  memset(tracepacketmetainfobuffer, FALSE, sizeof(PacketMetaInfo));
+
+  PacketEthernetHeader tracepacketethernetheader = *(PacketEthernetHeader *)safeMalloc(sizeof(PacketEthernetHeader));
+  PacketEthernetHeader *tracepacketethernetheaderbuffer = &tracepacketethernetheader;
+  memset(tracepacketethernetheaderbuffer, FALSE, sizeof(PacketEthernetHeader));
+
+  struct iphdr tracepacketipheader = *(struct iphdr *)safeMalloc(sizeof(struct iphdr));
+  struct iphdr *tracepacketipheaderbuffer = &tracepacketipheader;
+  memset(tracepacketipheaderbuffer, FALSE, sizeof(struct iphdr));
+
+  int numpackets = 0;
+  double firstpackettimestamp = -1.0; //default value to signal not set
+
+  //for every packet
+  //read packet metadata
+  while(safeRead(tracefilestream, (void *)tracepacketmetainfobuffer, sizeof(PacketMetaInfo)) != 0)
+  {
+    if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
+      printf("Reading packet...\n");
+
+    numpackets++;
+    packetMetaInfoToHostOrder(tracepacketmetainfobuffer);
+    if(firstpackettimestamp == -1.0)
+    {
+      firstpackettimestamp = (double)tracepacketmetainfo.meta_secsinceepoch
+        +formatAsTrailingDecimal(tracepacketmetainfo.meta_msecsincesec);
+    }
+
+    //read ethernet header
+    if(tracepacketmetainfo.meta_caplen >= sizeof(PacketEthernetHeader))
+    {
+      safeRead(tracefilestream, (void *)tracepacketethernetheaderbuffer, sizeof(PacketEthernetHeader));
+      tracepacketmetainfo.meta_caplen -= sizeof(PacketEthernetHeader);
+    }
+    else if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE )
+      printEthernetHeaderInfo((double)tracepacketmetainfo.meta_secsinceepoch
+        +formatAsTrailingDecimal(tracepacketmetainfo.meta_msecsincesec),
+        "Ethernet-truncated", "Ethernet-truncated");
+    //read ip header
+    if(tracepacketmetainfo.meta_caplen >= sizeof(struct iphdr))
+    {
+      safeRead(tracefilestream, (void *)tracepacketipheaderbuffer, sizeof(struct iphdr));
+      tracepacketmetainfo.meta_caplen -= sizeof(struct iphdr);
+    }
+    else if(flags[FLAG_PRINTIPHEADERS] == TRUE)
+    {
+      printEthernetHeaderInfo((double)tracepacketmetainfo.meta_secsinceepoch
+        +formatAsTrailingDecimal(tracepacketmetainfo.meta_msecsincesec),
+        "IP-truncated", "IP-truncated");
+    }
+    //read any remaining bits
+    safeRead(tracefilestream, safeMalloc(tracepacketmetainfo.meta_caplen), tracepacketmetainfo.meta_caplen);
+  }
+
+  double lastpackettimestamp = (double)tracepacketmetainfo.meta_secsinceepoch
+    +formatAsTrailingDecimal(tracepacketmetainfo.meta_msecsincesec);
+
+  if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
+    printf("Reached end of file.\n");
+
+  if(flags[FLAG_PRINTTRACESUMMARY] == TRUE)
+    printTraceSummary(numpackets, firstpackettimestamp, lastpackettimestamp);
 }
 
 //converts data in packetmetainfo to host order
@@ -86,17 +157,49 @@ int testStringEquality(char *string1, char *string2)
 double formatAsTrailingDecimal(int integerdigits)
 {
   double trailingdecimal = (double)integerdigits;
-  while(trailingdecimal >= 1.0)
-  {
-    trailingdecimal = trailingdecimal/10;
-  }
+  trailingdecimal = trailingdecimal/1000000;
   return trailingdecimal;
+  //while(trailingdecimal >= 1.0)
+  //{
+  //  trailingdecimal = trailingdecimal/10;
+  //}
+  //return trailingdecimal;
+}
+
+//handles parsing of all user input arguments, sets flags and vars appropriately
+void parseInput(int argc, char *argv[], int *flags, char **tracefilename)
+{
+  int i;
+  for(i=0; i<NUMFLAGS; i++)
+    flags[i] = FALSE;
+  int input;
+  //read input args into variables
+  while((input = getopt(argc, argv, "seitmvr:")) != -1)
+  {
+    int prevtracefilenameset = flags[FLAG_TRACEFILENAME];
+    char *option = parseInputArg(input, flags);
+
+    //if the given argument is r, copy the input file name
+    if(flags[FLAG_TRACEFILENAME] == TRUE && prevtracefilenameset == FALSE)
+    {
+      //no need to check if null; already handled by getopt
+      *tracefilename = option;
+    }
+  }
+  if(flags[FLAG_TRACEFILENAME] == FALSE)
+  {
+    printf("Error: must specify an input file.\n");
+    exit(1);
+  }
+
+  if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
+    printf("input file name: %s\n",*tracefilename);
 }
 
 //sets argument flag and returns any options given
-char *parseInput(int input, int flags[])
+char *parseInputArg(int inputargtoparse, int flags[])
 {
-    switch(input)
+    switch(inputargtoparse)
     {
     case 's':
       flags[FLAG_PRINTTRACESUMMARY] = TRUE;
@@ -144,7 +247,17 @@ int safeRead(FILE *filestream, void *readbuffer, int readbuffersize)
   return readresult;
 }
 
-void *safemalloc (unsigned int sz)
+void safeOpen(FILE **filestream, char *filename, char filemode)
+{
+  char *filemodeptr = &filemode;
+  if((*filestream = fopen(filename,filemodeptr)) == NULL)
+  {
+    printf("Error: Unable to read from file.\n");
+    exit(1);
+  }
+}
+
+void *safeMalloc (unsigned int sz)
 {
     void *p;
     if ((p = (void *)malloc (sz)) == NULL)
@@ -159,113 +272,13 @@ void *safemalloc (unsigned int sz)
 int main(int argc, char *argv[])
 {
   int flags[NUMFLAGS];
-  int i;
-  for(i=0; i<NUMFLAGS; i++)
-    flags[i] = FALSE;
-  int input;
-  char *tracefilename;
+  char *tracefilename = NULL;
   FILE *tracefilestream = NULL;
+  parseInput(argc, argv, flags, &tracefilename);
 
-  //read input args into variables
-  while((input = getopt(argc, argv, "seitmvr:")) != -1)
-  {
-    int prevtracefilenameset = flags[FLAG_TRACEFILENAME];
-    char *option = parseInput(input, flags);
+  safeOpen(&tracefilestream, tracefilename, 'r');
 
-    //if the given argument is r, copy the input file name
-    if(flags[FLAG_TRACEFILENAME] == TRUE && prevtracefilenameset == FALSE)
-    {
-      //no need to check if null; already handled by getopt
-      tracefilename = option;
-    }
-  }
-  if(flags[FLAG_TRACEFILENAME] == FALSE)
-  {
-    printf("Error: must specify an input file.\n");
-    return 1;
-  }
-
-  if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
-    printf("input file name: %s\n",tracefilename);
-
-  //read the packet trace from the file until finished
-  char filemode_read = 'r';
-  char *filemode = &filemode_read;
-  if((tracefilestream = fopen(tracefilename,filemode)) == NULL)
-  {
-    printf("Error: Unable to read from file.\n");
-    exit(1);
-  }
-
-  PacketMetaInfo tracepacketmetainfo = *(PacketMetaInfo *)safemalloc(sizeof(PacketMetaInfo));
-  PacketMetaInfo *tracepacketmetainfobuffer = &tracepacketmetainfo;
-  memset(tracepacketmetainfobuffer, FALSE, sizeof(PacketMetaInfo));
-
-  PacketEthernetHeader tracepacketethernetheader = *(PacketEthernetHeader *)safemalloc(sizeof(PacketEthernetHeader));
-  PacketEthernetHeader *tracepacketethernetheaderbuffer = &tracepacketethernetheader;
-  memset(tracepacketethernetheaderbuffer, FALSE, sizeof(PacketEthernetHeader));
-
-  struct iphdr tracepacketipheader = *(struct iphdr *)safemalloc(sizeof(struct iphdr));
-  struct iphdr *tracepacketipheaderbuffer = &tracepacketipheader;
-  memset(tracepacketipheaderbuffer, FALSE, sizeof(struct iphdr));
-
-  int numpackets = 0;
-  double firstpackettimestamp = -1.0; //default value to signal not set
-
-  /*
-    TODO: may want to put this all in a separate method so main isn't huge,
-    but get it to work first, may not be worth passing all the arguments
-    back and forth
-  */
-  //for every packet
-  //read packet metadata
-  while(safeRead(tracefilestream, (void *)tracepacketmetainfobuffer, sizeof(PacketMetaInfo)) != 0)
-  {
-    if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
-      printf("Reading packet...\n");
-
-    numpackets++;
-    packetMetaInfoToHostOrder(tracepacketmetainfobuffer);
-    if(firstpackettimestamp == -1.0)
-    {
-      firstpackettimestamp = (double)tracepacketmetainfo.meta_secsinceepoch
-        +formatAsTrailingDecimal(tracepacketmetainfo.meta_msecsincesec);
-    }
-
-    //read ethernet header
-    if(tracepacketmetainfo.meta_caplen >= sizeof(PacketEthernetHeader))
-    {
-      safeRead(tracefilestream, (void *)tracepacketethernetheaderbuffer, sizeof(PacketEthernetHeader));
-      tracepacketmetainfo.meta_caplen -= sizeof(PacketEthernetHeader);
-    }
-    else if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE )
-      printEthernetHeaderInfo((double)tracepacketmetainfo.meta_secsinceepoch
-        +formatAsTrailingDecimal(tracepacketmetainfo.meta_msecsincesec),
-        "Ethernet-truncated", "Ethernet-truncated");
-    //read ip header
-    if(tracepacketmetainfo.meta_caplen >= sizeof(struct iphdr))
-    {
-      safeRead(tracefilestream, (void *)tracepacketipheaderbuffer, sizeof(struct iphdr));
-      tracepacketmetainfo.meta_caplen -= sizeof(struct iphdr);
-    }
-    else if(flags[FLAG_PRINTIPHEADERS] == TRUE)
-    {
-      printEthernetHeaderInfo((double)tracepacketmetainfo.meta_secsinceepoch
-        +formatAsTrailingDecimal(tracepacketmetainfo.meta_msecsincesec),
-        "IP-truncated", "IP-truncated");
-    }
-    //read any remaining bits
-    safeRead(tracefilestream, safemalloc(tracepacketmetainfo.meta_caplen), tracepacketmetainfo.meta_caplen);
-  }
-
-  double lastpackettimestamp = (double)tracepacketmetainfo.meta_secsinceepoch
-    +formatAsTrailingDecimal(tracepacketmetainfo.meta_msecsincesec);
-
-  if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
-    printf("Reached end of file.\n");
-
-  if(flags[FLAG_PRINTTRACESUMMARY] == TRUE)
-    printTraceSummary(numpackets, firstpackettimestamp, lastpackettimestamp);
+  analyzePacketTrace(tracefilestream, flags);
 
   return 0;
 }

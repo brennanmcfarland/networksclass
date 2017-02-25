@@ -40,10 +40,13 @@ typedef struct PacketEthernetHeader
 void printTraceSummary(int numpackets, double firstpackettimestamp, double lastpackettimestamp);
 void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destinationaddress);
 void dumpIPAddress(char *ipaddress);
+void analyzePacketTrace(FILE *tracefilestream, int flags[]);
 void packetMetaInfoToHostOrder(PacketMetaInfo * packetmetainfo);
 void PacketEthernetHeaderToHostOrder(PacketEthernetHeader * packetethernetheader);
 int testStringEquality(char *string1, char *string2);
 double formatAsTrailingDecimal(int integerdigits);
-char *parseInput(int input, int flags[]);
+void parseInput(int argc, char *argv[], int *flags, char **tracefilename);
+char *parseInputArg(int inputargtoparse, int flags[]);
 int safeRead(FILE *filestream, void *readbuffer, int readbuffersize);
-void *safemalloc (unsigned int sz);
+void safeOpen(FILE **filestream, char *filename, char filemode);
+void *safeMalloc (unsigned int sz);
