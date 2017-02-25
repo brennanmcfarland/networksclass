@@ -11,6 +11,7 @@
 #include <stdio.h> //for file operations
 #include <string.h> //for memset
 #include <arpa/inet.h> //for converting between network and host order
+#include </usr/include/netinet/ip.h> //for the iphdr struct
 #include "Hashtable.c"
 #include "McFarlandProject2.h"
 
@@ -198,7 +199,16 @@ int main(int argc, char *argv[])
 
   PacketMetaInfo tracepacketmetainfo = *(PacketMetaInfo *)safemalloc(sizeof(PacketMetaInfo));
   PacketMetaInfo *tracepacketmetainfobuffer = &tracepacketmetainfo;
-  memset(tracepacketmetainfobuffer,FALSE, sizeof(PacketMetaInfo));
+  memset(tracepacketmetainfobuffer, FALSE, sizeof(PacketMetaInfo));
+
+  PacketEthernetHeader tracepacketethernetheader = *(PacketEthernetHeader *)safemalloc(sizeof(PacketEthernetHeader));
+  PacketEthernetHeader *tracepacketethernetheaderbuffer = &tracepacketethernetheader;
+  memset(tracepacketethernetheaderbuffer, FALSE, sizeof(PacketEthernetHeader));
+
+  struct iphdr tracepacketipheader = *(struct iphdr *)safemalloc(sizeof(struct iphdr));
+  struct iphdr *tracepacketipheaderbuffer = &tracepacketipheader;
+  memset(tracepacketipheaderbuffer, FALSE, sizeof(struct iphdr));
+
   int numpackets = 0;
   double firstpackettimestamp = -1.0; //default value to signal not set
 
@@ -209,7 +219,7 @@ int main(int argc, char *argv[])
   */
   //for every packet
   //read packet metadata
-  while(safeRead(tracefilestream, (void *)tracepacketmetainfobuffer,sizeof(PacketMetaInfo)) != 0)
+  while(safeRead(tracefilestream, (void *)tracepacketmetainfobuffer, sizeof(PacketMetaInfo)) != 0)
   {
     if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
       printf("Reading packet...\n");
@@ -225,12 +235,27 @@ int main(int argc, char *argv[])
     //read ethernet header
     if(tracepacketmetainfo.meta_caplen >= sizeof(PacketEthernetHeader))
     {
-
+      safeRead(tracefilestream, (void *)tracepacketethernetheaderbuffer, sizeof(PacketEthernetHeader));
+      tracepacketmetainfo.meta_caplen -= sizeof(PacketEthernetHeader);
     }
     else if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE )
       printEthernetHeaderInfo((double)tracepacketmetainfo.meta_secsinceepoch
         +formatAsTrailingDecimal(tracepacketmetainfo.meta_msecsincesec),
-        "Ethernet-truncated", "Ethernet-truncated"); //ethernet header source and dest addreeeses
+        "Ethernet-truncated", "Ethernet-truncated");
+    //read ip header
+    if(tracepacketmetainfo.meta_caplen >= sizeof(struct iphdr))
+    {
+      safeRead(tracefilestream, (void *)tracepacketipheaderbuffer, sizeof(struct iphdr));
+      tracepacketmetainfo.meta_caplen -= sizeof(struct iphdr);
+    }
+    else if(flags[FLAG_PRINTIPHEADERS] == TRUE)
+    {
+      printEthernetHeaderInfo((double)tracepacketmetainfo.meta_secsinceepoch
+        +formatAsTrailingDecimal(tracepacketmetainfo.meta_msecsincesec),
+        "IP-truncated", "IP-truncated");
+    }
+    //read any remaining bits
+    safeRead(tracefilestream, safemalloc(tracepacketmetainfo.meta_caplen), tracepacketmetainfo.meta_caplen);
   }
 
   double lastpackettimestamp = (double)tracepacketmetainfo.meta_secsinceepoch
@@ -242,8 +267,5 @@ int main(int argc, char *argv[])
   if(flags[FLAG_PRINTTRACESUMMARY] == TRUE)
     printTraceSummary(numpackets, firstpackettimestamp, lastpackettimestamp);
 
-  //it still says this is an invalid initializer, figure out why
-  struct iphdr test = safemalloc(sizeof(struct iphdr));
-  printf("%lu",sizeof(test));
   return 0;
 }
