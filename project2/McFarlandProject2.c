@@ -126,17 +126,17 @@ void analyzePacketTrace(FILE *tracefilestream, int flags[])
       printEthernetHeaderInfo(formatTimeStamp(
         tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
         "Ethernet-truncated", "Ethernet-truncated", 0);
+
     //read ip header
     if(tracepacketmetainfo.meta_caplen >= sizeof(struct iphdr))
     {
       safeRead(tracefilestream, (void *)tracepacketipheaderbuffer, sizeof(struct iphdr));
+      iphdrToHostOrder(tracepacketipheaderbuffer);
       tracepacketmetainfo.meta_caplen -= sizeof(struct iphdr);
     }
     else if(flags[FLAG_PRINTIPHEADERS] == TRUE)
     {
-      printEthernetHeaderInfo(formatTimeStamp(
-        tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
-        "IP-truncated", "IP-truncated",0);
+      //print ip header truncated
     }
     //read any remaining bits
     safeRead(tracefilestream, safeMalloc(tracepacketmetainfo.meta_caplen), tracepacketmetainfo.meta_caplen);
@@ -165,6 +165,19 @@ void packetMetaInfoToHostOrder(PacketMetaInfo * packetmetainfo)
 void PacketEthernetHeaderToHostOrder(PacketEthernetHeader * packetethernetheader)
 {
   packetethernetheader->eth_protocoltype = ntohs(packetethernetheader->eth_protocoltype);
+}
+
+//converts data in iphdr to host order
+void iphdrToHostOrder(struct iphdr * packetipheader)
+{
+  packetipheader->ihl = ntohl(packetipheader->ihl);
+  packetipheader->version = ntohl(packetipheader->version);
+  packetipheader->tot_len = ntohs(packetipheader->tot_len);
+  packetipheader->id = ntohs(packetipheader->id);
+  packetipheader->frag_off = ntohs(packetipheader->frag_off);
+  packetipheader->check = ntohs(packetipheader->check);
+  packetipheader->saddr = ntohl(packetipheader->saddr);
+  packetipheader->daddr = ntohl(packetipheader->daddr);
 }
 
 //returns whether 2 strings are equal

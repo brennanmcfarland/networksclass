@@ -44,6 +44,7 @@ void printIPAddress(char *ipaddress);
 void analyzePacketTrace(FILE *tracefilestream, int flags[]);
 void packetMetaInfoToHostOrder(PacketMetaInfo * packetmetainfo);
 void PacketEthernetHeaderToHostOrder(PacketEthernetHeader * packetethernetheader);
+void iphdrToHostOrder(struct iphdr * packetipheader);
 int testStringEquality(char *string1, char *string2);
 double formatTimeStamp(int secsinceepoch, int msecsinsec);
 double formatAsTrailingDecimal(int integerdigits);
