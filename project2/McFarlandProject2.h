@@ -38,15 +38,15 @@ typedef struct PacketEthernetHeader
   unsigned short eth_protocoltype;
 } PacketEthernetHeader;
 
-void printTraceSummary(int numpackets, double firstpackettimestamp, double lastpackettimestamp);
+void printTraceSummary();
 void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destinationaddress, unsigned short protocoltype);
 void printIPHeaderInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   char destinationaddress[IPADDRESSSIZE], unsigned int ihl, u_int8_t protocol, u_int8_t ttl);
 void printMACAddress(char *macaddress);
 void printIPAddress(char *ipaddress);
-void analyzePacketTrace(FILE *tracefilestream, int flags[]);
-PacketEthernetHeader analyzePacketEthernetHeader(FILE *tracefilestream, int flags[], PacketMetaInfo *tracepacketmetainfo);
-struct iphdr analyzePacketIPHeader(FILE *tracefilestream, int flags[], PacketMetaInfo *tracepacketmetainfo);
+void analyzePacketTrace();
+void analyzePacketEthernetHeader(PacketMetaInfo *tracepacketmetainfo);
+void analyzePacketIPHeader();
 void packetMetaInfoToHostOrder(PacketMetaInfo * packetmetainfo);
 void packetEthernetHeaderToHostOrder(PacketEthernetHeader * packetethernetheader);
 void iphdrToHostOrder(struct iphdr * packetipheader);
@@ -54,8 +54,8 @@ int testStringEquality(char *string1, char *string2);
 char *formatIPAddress(u_int32_t ipaddressint);
 double formatTimeStamp(int secsinceepoch, int msecsinsec);
 double formatAsTrailingDecimal(int integerdigits);
-void parseInput(int argc, char *argv[], int *flags, char **tracefilename);
-char *parseInputArg(int inputargtoparse, int flags[]);
+void parseInput(int argc, char *argv[], char **tracefilename);
+char *parseInputArg(int inputargtoparse);
 int safeRead(FILE *filestream, void *readbuffer, int readbuffersize);
 void safeOpen(FILE **filestream, char *filename, char filemode);
 void *safeMalloc (unsigned int sz);
