@@ -35,8 +35,8 @@ void printTraceSummary(int numpackets, double firstpackettimestamp, double lastp
 //prints ethernet header info
 void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destinationaddress, unsigned short protocoltype)
 {
-  char *truncatedethernetheadermessage = "Ethernet-truncated"; //double check to make sure it's the same
-  if(testStringEquality(sourceaddress,truncatedethernetheadermessage))
+  char *truncatedethernetheadermessage = "Ethernet-truncated";
+  if(testStringEquality(sourceaddress, truncatedethernetheadermessage))
   {
     printf("%.6f %s\n", timestamp, truncatedethernetheadermessage);
   }
@@ -49,6 +49,36 @@ void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destin
     printf(" ");
     //if the least significant byte is nonzero it appends 0s
     printf("0x%02x%02x\n", protocoltype & 0x00ff, (protocoltype & 0xff00)/0xff);
+  }
+}
+
+//prints ip header info
+void printIPHeaderInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
+  char destinationaddress[IPADDRESSSIZE], unsigned int ihl, u_int8_t protocol, u_int8_t ttl)
+{
+  char *truncatedipheadermessage = "IP-truncated";
+  char *nonipheadermessage = "non-IP";
+  char *unknownwhetherip = "unknown";
+  if(testStringEquality(sourceaddress, truncatedipheadermessage))
+  {
+    printf("%.6f %s\n", timestamp, truncatedipheadermessage);
+  }
+  else if(testStringEquality(sourceaddress, nonipheadermessage))
+  {
+    printf("%.6f %s\n", timestamp, nonipheadermessage);
+  }
+  else if(testStringEquality(sourceaddress, unknownwhetherip))
+  {
+    printf("%.6f %s\n", timestamp, unknownwhetherip);
+  }
+  else
+  {
+    printf("%.6f ", timestamp);
+    printIPAddress(sourceaddress);
+    printf(" ");
+    printIPAddress(destinationaddress);
+    printf(" ");
+    printf("%u %d %d\n", ihl, protocol, ttl);
   }
 }
 
@@ -122,21 +152,43 @@ void analyzePacketTrace(FILE *tracefilestream, int flags[])
           tracepacketethernetheader.eth_srcaddress, tracepacketethernetheader.eth_destaddress,
           tracepacketethernetheader.eth_protocoltype);
     }
-    else if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE )
+    else if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE)
       printEthernetHeaderInfo(formatTimeStamp(
         tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
-        "Ethernet-truncated", "Ethernet-truncated", 0);
+        "Ethernet-truncated", "", 0);
+    else if(flags[FLAG_PRINTIPHEADERS] == TRUE)
+      printIPHeaderInfo(formatTimeStamp(
+        tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
+        "unknown", "", 0, 0, 0);
 
     //read ip header
-    if(tracepacketmetainfo.meta_caplen >= sizeof(struct iphdr))
+    //ERROR: eth_protocoltype is just read as 8 and not 0800
+    if((unsigned short)tracepacketethernetheader.eth_protocoltype != 0x0800 && flags[FLAG_PRINTIPHEADERS] == TRUE)
+    {
+      printf("|%x|", tracepacketethernetheader.eth_protocoltype);
+      printIPHeaderInfo(formatTimeStamp(
+        tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
+        "non-IP", "", 0, 0, 0);
+    }
+    else if(tracepacketmetainfo.meta_caplen >= sizeof(struct iphdr))
     {
       safeRead(tracefilestream, (void *)tracepacketipheaderbuffer, sizeof(struct iphdr));
       iphdrToHostOrder(tracepacketipheaderbuffer);
       tracepacketmetainfo.meta_caplen -= sizeof(struct iphdr);
+      if(flags[FLAG_PRINTIPHEADERS] == TRUE)
+      {
+        printIPHeaderInfo(formatTimeStamp(
+          tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
+          formatIPAddress(tracepacketipheader.saddr), formatIPAddress(tracepacketipheader.daddr),
+          tracepacketipheader.ihl, tracepacketipheader.protocol,
+          tracepacketipheader.ttl);
+      }
     }
     else if(flags[FLAG_PRINTIPHEADERS] == TRUE)
     {
-      //print ip header truncated
+      printIPHeaderInfo(formatTimeStamp(
+        tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
+        "IP-truncated", "", 0, 0, 0);
     }
     //read any remaining bits
     safeRead(tracefilestream, safeMalloc(tracepacketmetainfo.meta_caplen), tracepacketmetainfo.meta_caplen);
@@ -192,6 +244,18 @@ int testStringEquality(char *string1, char *string2)
       return FALSE;
   }
   return TRUE;
+}
+
+//formats ip address as a char array
+char *formatIPAddress(u_int32_t ipaddressint)
+{
+  char *ipaddressarray = safeMalloc(IPADDRESSSIZE);
+  int i;
+  for(i=0; i<sizeof(ipaddressarray); i++)
+  {
+    ipaddressarray[i] = (ipaddressint >> 8*(sizeof(ipaddressarray)-1-i)) & 0xff;
+  }
+  return ipaddressarray;
 }
 
 //formats timestamp data for output

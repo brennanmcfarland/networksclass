@@ -39,6 +39,8 @@ typedef struct PacketEthernetHeader
 
 void printTraceSummary(int numpackets, double firstpackettimestamp, double lastpackettimestamp);
 void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destinationaddress, unsigned short protocoltype);
+void printIPHeaderInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
+  char destinationaddress[IPADDRESSSIZE], unsigned int ihl, u_int8_t protocol, u_int8_t ttl);
 void printMACAddress(char *macaddress);
 void printIPAddress(char *ipaddress);
 void analyzePacketTrace(FILE *tracefilestream, int flags[]);
@@ -46,6 +48,7 @@ void packetMetaInfoToHostOrder(PacketMetaInfo * packetmetainfo);
 void PacketEthernetHeaderToHostOrder(PacketEthernetHeader * packetethernetheader);
 void iphdrToHostOrder(struct iphdr * packetipheader);
 int testStringEquality(char *string1, char *string2);
+char *formatIPAddress(u_int32_t ipaddressint);
 double formatTimeStamp(int secsinceepoch, int msecsinsec);
 double formatAsTrailingDecimal(int integerdigits);
 void parseInput(int argc, char *argv[], int *flags, char **tracefilename);
