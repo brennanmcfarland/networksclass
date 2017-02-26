@@ -114,25 +114,17 @@ void analyzePacketTrace(FILE *tracefilestream, int flags[])
   PacketMetaInfo tracepacketmetainfo = *(PacketMetaInfo *)safeMalloc(sizeof(PacketMetaInfo));
   PacketMetaInfo *tracepacketmetainfobuffer = &tracepacketmetainfo;
   memset(tracepacketmetainfobuffer, FALSE, sizeof(PacketMetaInfo));
-
   PacketEthernetHeader tracepacketethernetheader = *(PacketEthernetHeader *)safeMalloc(sizeof(PacketEthernetHeader));
-  PacketEthernetHeader *tracepacketethernetheaderbuffer = &tracepacketethernetheader;
-  memset(tracepacketethernetheaderbuffer, FALSE, sizeof(PacketEthernetHeader));
-
   struct iphdr tracepacketipheader = *(struct iphdr *)safeMalloc(sizeof(struct iphdr));
-  struct iphdr *tracepacketipheaderbuffer = &tracepacketipheader;
-  memset(tracepacketipheaderbuffer, FALSE, sizeof(struct iphdr));
 
   int numpackets = 0;
   double firstpackettimestamp = -1.0; //default value to signal not set
 
-  //for every packet
   //read packet metadata
   while(safeRead(tracefilestream, (void *)tracepacketmetainfobuffer, sizeof(PacketMetaInfo)) != 0)
   {
     if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
       printf("Reading packet...\n");
-
     numpackets++;
     packetMetaInfoToHostOrder(tracepacketmetainfobuffer);
     if(firstpackettimestamp == -1.0)
@@ -142,67 +134,23 @@ void analyzePacketTrace(FILE *tracefilestream, int flags[])
     }
 
     //read ethernet header
-    if(tracepacketmetainfo.meta_caplen >= sizeof(PacketEthernetHeader))
-    {
-      safeRead(tracefilestream, (void *)tracepacketethernetheaderbuffer, sizeof(PacketEthernetHeader));
-      tracepacketmetainfo.meta_caplen -= sizeof(PacketEthernetHeader);
-      packetEthernetHeaderToHostOrder(tracepacketethernetheaderbuffer);
-      if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE)
-        printEthernetHeaderInfo(formatTimeStamp(
-          tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
-          tracepacketethernetheader.eth_srcaddress, tracepacketethernetheader.eth_destaddress,
-          tracepacketethernetheader.eth_protocoltype);
-    }
-    else if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE)
-      printEthernetHeaderInfo(formatTimeStamp(
-        tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
-        "Ethernet-truncated", "", 0);
-    else if(flags[FLAG_PRINTIPHEADERS] == TRUE)
-    {
-      printIPHeaderInfo(formatTimeStamp(
-        tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
-        "unknown", "", 0, 0, 0);
-      break;
-    }
+    tracepacketethernetheader = analyzePacketEthernetHeader(tracefilestream, flags, tracepacketmetainfobuffer);
 
     //read ip header
-    //ERROR: eth_protocoltype is just read as 8 and not 0800
-    //now this is never getting triggered
-    //use sprintf
-    //if((((unsigned short)tracepacketethernetheader.eth_protocoltype & 0xff00) == 0x8)
-    //  && (((unsigned short)tracepacketethernetheader.eth_protocoltype & 0x00ff) == 0x0)
-    //  && flags[FLAG_PRINTIPHEADERS] == TRUE)
-    //it's still in network byte order.  why???
     char *formattedprotocoltype = safeMalloc(sizeof(unsigned short));
     sprintf(formattedprotocoltype, "0x%02x%02x",
       (tracepacketethernetheader.eth_protocoltype & 0xff00)/0xff, (tracepacketethernetheader.eth_protocoltype & 0x00ff));
     if((testStringEquality(formattedprotocoltype, "0x0800") == FALSE) && flags[FLAG_PRINTIPHEADERS] == TRUE)
     {
-      //this comparison is still coming back false, why?
-      //printf("%d", testStringEquality(formattedprotocoltype, "0x0800"));
       printIPHeaderInfo(formatTimeStamp(
         tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
         "non-IP", "", 0, 0, 0);
     }
-    else if(tracepacketmetainfo.meta_caplen >= sizeof(struct iphdr))
+    else
     {
-      safeRead(tracefilestream, (void *)tracepacketipheaderbuffer, sizeof(struct iphdr));
-      iphdrToHostOrder(tracepacketipheaderbuffer);
-      tracepacketmetainfo.meta_caplen -= sizeof(struct iphdr);
-      if(flags[FLAG_PRINTIPHEADERS] == TRUE)
-      {
-        printIPHeaderInfo(formatTimeStamp(
-          tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
-          formatIPAddress(tracepacketipheader.saddr), formatIPAddress(tracepacketipheader.daddr),
-          tracepacketipheader.ihl, tracepacketipheader.protocol,
-          tracepacketipheader.ttl);
-      }
-    }
-    else if(flags[FLAG_PRINTIPHEADERS] == TRUE)
-    {
-      printIPHeaderInfo(formatTimeStamp(
-        tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
-        "IP-truncated", "", 0, 0, 0);
+      tracepacketipheader = analyzePacketIPHeader(tracefilestream, flags, tracepacketmetainfobuffer);
+      if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
+        printf("%d",tracepacketipheader.protocol);
     }
     //read any remaining bits
     safeRead(tracefilestream, safeMalloc(tracepacketmetainfo.meta_caplen), tracepacketmetainfo.meta_caplen);
@@ -216,6 +164,67 @@ void analyzePacketTrace(FILE *tracefilestream, int flags[])
 
   if(flags[FLAG_PRINTTRACESUMMARY] == TRUE)
     printTraceSummary(numpackets, firstpackettimestamp, lastpackettimestamp);
+}
+
+//analyze a single ethernet packet header
+PacketEthernetHeader analyzePacketEthernetHeader(FILE *tracefilestream, int flags[], PacketMetaInfo *tracepacketmetainfo)
+{
+  PacketEthernetHeader tracepacketethernetheader = *(PacketEthernetHeader *)safeMalloc(sizeof(PacketEthernetHeader));
+  PacketEthernetHeader *tracepacketethernetheaderbuffer = &tracepacketethernetheader;
+  memset(tracepacketethernetheaderbuffer, FALSE, sizeof(PacketEthernetHeader));
+
+  if(tracepacketmetainfo->meta_caplen >= sizeof(PacketEthernetHeader))
+  {
+    safeRead(tracefilestream, (void *)tracepacketethernetheaderbuffer, sizeof(PacketEthernetHeader));
+    tracepacketmetainfo->meta_caplen -= sizeof(PacketEthernetHeader);
+    packetEthernetHeaderToHostOrder(tracepacketethernetheaderbuffer);
+    if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE)
+      printEthernetHeaderInfo(formatTimeStamp(
+        tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
+        tracepacketethernetheader.eth_srcaddress, tracepacketethernetheader.eth_destaddress,
+        tracepacketethernetheader.eth_protocoltype);
+  }
+  else if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE)
+    printEthernetHeaderInfo(formatTimeStamp(
+      tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
+      "Ethernet-truncated", "", 0);
+  else if(flags[FLAG_PRINTIPHEADERS] == TRUE)
+  {
+    printIPHeaderInfo(formatTimeStamp(
+      tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
+      "unknown", "", 0, 0, 0);
+  }
+  return *tracepacketethernetheaderbuffer;
+}
+
+//analyze a single ip packet header
+struct iphdr analyzePacketIPHeader(FILE *tracefilestream, int flags[], PacketMetaInfo *tracepacketmetainfo)
+{
+  struct iphdr tracepacketipheader = *(struct iphdr *)safeMalloc(sizeof(struct iphdr));
+  struct iphdr *tracepacketipheaderbuffer = &tracepacketipheader;
+  memset(tracepacketipheaderbuffer, FALSE, sizeof(struct iphdr));
+
+  if(tracepacketmetainfo->meta_caplen >= sizeof(struct iphdr))
+  {
+    safeRead(tracefilestream, (void *)tracepacketipheaderbuffer, sizeof(struct iphdr));
+    iphdrToHostOrder(tracepacketipheaderbuffer);
+    tracepacketmetainfo->meta_caplen -= sizeof(struct iphdr);
+    if(flags[FLAG_PRINTIPHEADERS] == TRUE)
+    {
+      printIPHeaderInfo(formatTimeStamp(
+        tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
+        formatIPAddress(tracepacketipheader.saddr), formatIPAddress(tracepacketipheader.daddr),
+        tracepacketipheader.ihl, tracepacketipheader.protocol,
+        tracepacketipheader.ttl);
+    }
+  }
+  else if(flags[FLAG_PRINTIPHEADERS] == TRUE)
+  {
+    printIPHeaderInfo(formatTimeStamp(
+      tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
+      "IP-truncated", "", 0, 0, 0);
+  }
+  return *tracepacketipheaderbuffer;
 }
 
 //converts data in packetmetainfo to host order
@@ -258,9 +267,6 @@ int testStringEquality(char *string1, char *string2)
   {
     if(string1[i] != string2[i])
     {
-      //printf("char number %d different\n", i);
-      //printf("%c, %c\n", string1[i], string2[i]);
-      //printf("%s, %s\n", string1, string2);
       return FALSE;
     }
   }

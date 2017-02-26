@@ -45,6 +45,8 @@ void printIPHeaderInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
 void printMACAddress(char *macaddress);
 void printIPAddress(char *ipaddress);
 void analyzePacketTrace(FILE *tracefilestream, int flags[]);
+PacketEthernetHeader analyzePacketEthernetHeader(FILE *tracefilestream, int flags[], PacketMetaInfo *tracepacketmetainfo);
+struct iphdr analyzePacketIPHeader(FILE *tracefilestream, int flags[], PacketMetaInfo *tracepacketmetainfo);
 void packetMetaInfoToHostOrder(PacketMetaInfo * packetmetainfo);
 void packetEthernetHeaderToHostOrder(PacketEthernetHeader * packetethernetheader);
 void iphdrToHostOrder(struct iphdr * packetipheader);
