@@ -146,6 +146,7 @@ void analyzePacketTrace(FILE *tracefilestream, int flags[])
     {
       safeRead(tracefilestream, (void *)tracepacketethernetheaderbuffer, sizeof(PacketEthernetHeader));
       tracepacketmetainfo.meta_caplen -= sizeof(PacketEthernetHeader);
+      packetEthernetHeaderToHostOrder(tracepacketethernetheaderbuffer);
       if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE)
         printEthernetHeaderInfo(formatTimeStamp(
           tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
@@ -160,12 +161,15 @@ void analyzePacketTrace(FILE *tracefilestream, int flags[])
       printIPHeaderInfo(formatTimeStamp(
         tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
         "unknown", "", 0, 0, 0);
+    packetEthernetHeaderToHostOrder(tracepacketethernetheaderbuffer);
 
     //read ip header
     //ERROR: eth_protocoltype is just read as 8 and not 0800
-    if((unsigned short)tracepacketethernetheader.eth_protocoltype != 0x0800 && flags[FLAG_PRINTIPHEADERS] == TRUE)
+    if((((unsigned short)tracepacketethernetheader.eth_protocoltype & 0xff00) == 0x8)
+      && (((unsigned short)tracepacketethernetheader.eth_protocoltype & 0x00ff) == 0x0)
+      && flags[FLAG_PRINTIPHEADERS] == TRUE)
     {
-      printf("|%x|", tracepacketethernetheader.eth_protocoltype);
+      printf("|%0x|", tracepacketethernetheader.eth_protocoltype);
       printIPHeaderInfo(formatTimeStamp(
         tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
         "non-IP", "", 0, 0, 0);
@@ -214,7 +218,7 @@ void packetMetaInfoToHostOrder(PacketMetaInfo * packetmetainfo)
 }
 
 //converts data in packetethernetheader to host order
-void PacketEthernetHeaderToHostOrder(PacketEthernetHeader * packetethernetheader)
+void packetEthernetHeaderToHostOrder(PacketEthernetHeader * packetethernetheader)
 {
   packetethernetheader->eth_protocoltype = ntohs(packetethernetheader->eth_protocoltype);
 }
