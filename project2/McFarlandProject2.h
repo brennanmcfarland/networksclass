@@ -21,6 +21,7 @@
 #define IPADDRESSSIZE 4
 #define FLAGSALLOCSIZE NUMFLAGS*sizeof(int)
 #define BYTESIZE 1
+#define WORDSIZE 4
 
 typedef struct PacketMetaInfo
 {

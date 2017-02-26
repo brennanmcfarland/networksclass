@@ -48,7 +48,7 @@ void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destin
     printMACAddress(destinationaddress);
     printf(" ");
     //if the least significant byte is nonzero it appends 0s
-    printf("0x%02x%02x\n", protocoltype & 0x00ff, (protocoltype & 0xff00)/0xff);
+    printf("0x%02x%02x\n", (protocoltype & 0xff00)/0xff, (protocoltype & 0x00ff));
   }
 }
 
@@ -78,7 +78,7 @@ void printIPHeaderInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
     printf(" ");
     printIPAddress(destinationaddress);
     printf(" ");
-    printf("%u %d %d\n", ihl, protocol, ttl);
+    printf("%u %d %d\n", ihl*WORDSIZE, protocol, ttl);
   }
 }
 
@@ -158,18 +158,28 @@ void analyzePacketTrace(FILE *tracefilestream, int flags[])
         tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
         "Ethernet-truncated", "", 0);
     else if(flags[FLAG_PRINTIPHEADERS] == TRUE)
+    {
       printIPHeaderInfo(formatTimeStamp(
         tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
         "unknown", "", 0, 0, 0);
-    packetEthernetHeaderToHostOrder(tracepacketethernetheaderbuffer);
+      break;
+    }
 
     //read ip header
     //ERROR: eth_protocoltype is just read as 8 and not 0800
-    if((((unsigned short)tracepacketethernetheader.eth_protocoltype & 0xff00) == 0x8)
-      && (((unsigned short)tracepacketethernetheader.eth_protocoltype & 0x00ff) == 0x0)
-      && flags[FLAG_PRINTIPHEADERS] == TRUE)
+    //now this is never getting triggered
+    //use sprintf
+    //if((((unsigned short)tracepacketethernetheader.eth_protocoltype & 0xff00) == 0x8)
+    //  && (((unsigned short)tracepacketethernetheader.eth_protocoltype & 0x00ff) == 0x0)
+    //  && flags[FLAG_PRINTIPHEADERS] == TRUE)
+    //it's still in network byte order.  why???
+    char *formattedprotocoltype = safeMalloc(sizeof(unsigned short));
+    sprintf(formattedprotocoltype, "0x%02x%02x",
+      (tracepacketethernetheader.eth_protocoltype & 0xff00)/0xff, (tracepacketethernetheader.eth_protocoltype & 0x00ff));
+    if((testStringEquality(formattedprotocoltype, "0x0800") == FALSE) && flags[FLAG_PRINTIPHEADERS] == TRUE)
     {
-      printf("|%0x|", tracepacketethernetheader.eth_protocoltype);
+      //this comparison is still coming back false, why?
+      //printf("%d", testStringEquality(formattedprotocoltype, "0x0800"));
       printIPHeaderInfo(formatTimeStamp(
         tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
         "non-IP", "", 0, 0, 0);
@@ -226,7 +236,7 @@ void packetEthernetHeaderToHostOrder(PacketEthernetHeader * packetethernetheader
 //converts data in iphdr to host order
 void iphdrToHostOrder(struct iphdr * packetipheader)
 {
-  packetipheader->ihl = ntohl(packetipheader->ihl);
+  //packetipheader->ihl = ntohl(packetipheader->ihl);
   packetipheader->version = ntohl(packetipheader->version);
   packetipheader->tot_len = ntohs(packetipheader->tot_len);
   packetipheader->id = ntohs(packetipheader->id);
@@ -240,12 +250,19 @@ void iphdrToHostOrder(struct iphdr * packetipheader)
 int testStringEquality(char *string1, char *string2)
 {
   if(sizeof(string1) != sizeof(string2))
+  {
     return FALSE;
+  }
   int i;
-  for(i=0; i<sizeof(string1); i++)
+  for(i=0; i<sizeof(string1)-1; i++)
   {
     if(string1[i] != string2[i])
+    {
+      //printf("char number %d different\n", i);
+      //printf("%c, %c\n", string1[i], string2[i]);
+      //printf("%s, %s\n", string1, string2);
       return FALSE;
+    }
   }
   return TRUE;
 }
