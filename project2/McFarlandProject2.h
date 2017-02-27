@@ -42,6 +42,7 @@ void printTraceSummary();
 void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destinationaddress, unsigned short protocoltype);
 void printIPHeaderInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   char destinationaddress[IPADDRESSSIZE], unsigned int ihl, u_int8_t protocol, u_int8_t ttl);
+void printPacketTypes();
 void printMACAddress(char *macaddress);
 void printIPAddress(char *ipaddress);
 void analyzePacketTrace();

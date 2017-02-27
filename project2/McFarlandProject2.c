@@ -22,8 +22,11 @@
   -may want to move location of analyzePacketTrace, not sure
 */
 
+//vars for operations
 FILE *tracefilestream;
 int flags[NUMFLAGS];
+
+//packet info structs
 PacketMetaInfo tracepacketmetainfo;
 PacketMetaInfo *tracepacketmetainfobuffer = &tracepacketmetainfo;
 PacketEthernetHeader tracepacketethernetheader;
@@ -31,9 +34,21 @@ PacketEthernetHeader *tracepacketethernetheaderbuffer = &tracepacketethernethead
 struct iphdr tracepacketipheader;
 struct iphdr *tracepacketipheaderbuffer = &tracepacketipheader;
 struct iphdr tracepacketipheader;
+
+//vars for aggregate data
 int numpackets = 0;
 double firstpackettimestamp = -1.0;
 double lastpackettimestamp = -1.0;
+int eth_numfullpackets = 0;
+int eth_numpartialpackets = 0;
+int numnonippackets = 0;
+int ip_numpartialpackets = 0;
+int ip_numpartialheaders = 0;
+int ip_numsourceaddresses = 0;
+int ip_numdestinationaddresses = 0;
+int ip_numtcppackets = 0;
+int ip_numupdpackets = 0;
+
 
 //prints packet trace summary
 void printTraceSummary()
@@ -94,6 +109,17 @@ void printIPHeaderInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   }
 }
 
+void printPacketTypes()
+{
+  printf("ETH: %d %d\n", eth_numfullpackets, eth_numpartialpackets);
+  printf("NON-IP: %d\n", numnonippackets);
+  printf("IP: %d %d\n", ip_numpartialpackets, ip_numpartialheaders);
+  printf("SRC: %d\n", ip_numsourceaddresses);
+  printf("DST: %d\n", ip_numdestinationaddresses);
+  printf("TRANSPORT: %d %d %d\n", ip_numtcppackets, ip_numupdpackets,
+    (ip_numpartialpackets-ip_numtcppackets-ip_numupdpackets));
+}
+
 //formats and prints a single MAC address
 void printMACAddress(char macaddress[MACADDRESSSIZE])
 {
@@ -143,11 +169,13 @@ void analyzePacketTrace()
     char *formattedprotocoltype = safeMalloc(sizeof(unsigned short));
     sprintf(formattedprotocoltype, "0x%02x%02x",
       (tracepacketethernetheader.eth_protocoltype & 0xff00)/0xff, (tracepacketethernetheader.eth_protocoltype & 0x00ff));
-    if((testStringEquality(formattedprotocoltype, "0x0800") == FALSE) && flags[FLAG_PRINTIPHEADERS] == TRUE)
+    if((testStringEquality(formattedprotocoltype, "0x0800") == FALSE))
     {
-      printIPHeaderInfo(formatTimeStamp(
-        tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
-        "non-IP", "", 0, 0, 0);
+      numnonippackets++;
+      if(flags[FLAG_PRINTIPHEADERS] == TRUE)
+        printIPHeaderInfo(formatTimeStamp(
+          tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
+          "non-IP", "", 0, 0, 0);
     }
     else
     {
@@ -167,6 +195,8 @@ void analyzePacketTrace()
 
   if(flags[FLAG_PRINTTRACESUMMARY] == TRUE)
     printTraceSummary();
+  if(flags[FLAG_PRINTPACKETTYPES] == TRUE)
+    printPacketTypes();
 }
 
 //analyze a single ethernet packet header
@@ -182,16 +212,19 @@ void analyzePacketEthernetHeader(PacketMetaInfo *tracepacketmetainfo)
         tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
         tracepacketethernetheader.eth_srcaddress, tracepacketethernetheader.eth_destaddress,
         tracepacketethernetheader.eth_protocoltype);
+    eth_numfullpackets++;
   }
-  else if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE)
-    printEthernetHeaderInfo(formatTimeStamp(
-      tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
-      "Ethernet-truncated", "", 0);
-  else if(flags[FLAG_PRINTIPHEADERS] == TRUE)
+  else
   {
-    printIPHeaderInfo(formatTimeStamp(
-      tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
-      "unknown", "", 0, 0, 0);
+    eth_numpartialpackets++;
+    if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE)
+      printEthernetHeaderInfo(formatTimeStamp(
+        tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
+        "Ethernet-truncated", "", 0);
+    if(flags[FLAG_PRINTIPHEADERS] == TRUE)
+      printIPHeaderInfo(formatTimeStamp(
+        tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
+        "unknown", "", 0, 0, 0);
   }
 }
 
@@ -203,6 +236,11 @@ void analyzePacketIPHeader()
     safeRead(tracefilestream, (void *)tracepacketipheaderbuffer, sizeof(struct iphdr));
     iphdrToHostOrder(tracepacketipheaderbuffer);
     tracepacketmetainfo.meta_caplen -= sizeof(struct iphdr);
+    ip_numpartialpackets++;
+    if(tracepacketipheader.protocol == 6)
+      ip_numtcppackets++;
+    if(tracepacketipheader.protocol == 17)
+      ip_numupdpackets++;
     if(flags[FLAG_PRINTIPHEADERS] == TRUE)
     {
       printIPHeaderInfo(formatTimeStamp(
@@ -212,11 +250,13 @@ void analyzePacketIPHeader()
         tracepacketipheader.ttl);
     }
   }
-  else if(flags[FLAG_PRINTIPHEADERS] == TRUE)
+  else
   {
-    printIPHeaderInfo(formatTimeStamp(
-      tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
-      "IP-truncated", "", 0, 0, 0);
+    ip_numpartialheaders++;
+    if(flags[FLAG_PRINTIPHEADERS] == TRUE)
+      printIPHeaderInfo(formatTimeStamp(
+        tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
+        "IP-truncated", "", 0, 0, 0);
   }
 }
 
