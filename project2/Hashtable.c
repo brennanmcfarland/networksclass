@@ -60,27 +60,16 @@ return np;
 */
 }
 
-/*
-public void insert(String key){
-  int hashCode = key.hashCode();
-  //if it already exists in the list, increment the # occurences, if not, create it
-  for(int i=0; i<table[Math.abs(hashCode)%table.length].size(); i++){
-    if(table[Math.abs(hashCode)%table.length].get(i).key.equals(key)){
-      table[Math.abs(hashCode)%table.length].get(i).addOccurence();
-      return;
-    }
-  }
-  */
-
 //for debugging
 void printTable()
 {
   int i;
   for(i=0; i<sizeof(hashtable.tableentrylists); i++)
   {
-    //does this work if no head?  the heads are filled with random data, not cleared
+    //some of the heads are filled with random data, not cleared
     ListNode *currentnode = (hashtable.tableentrylists[i].head);
-    while(currentnode != NULL && currentnode->next != NULL)
+    while(currentnode != EMPTY
+      && currentnode->next != EMPTY)
     {
       printf("%d",currentnode->entry->value);
       currentnode = currentnode->next;
@@ -88,6 +77,7 @@ void printTable()
   }
 }
 
+/*
 void growTable()
 {
     //copy the old table and make a new one to put the rehashed entries in
@@ -119,6 +109,7 @@ void growTable()
       }
     }
 }
+*/
 
 void insert(int newentryvalue)
 {
@@ -133,6 +124,7 @@ void insert(int newentryvalue)
     //IT'S OVERWRITING THE LIST POINTER DATA BEFORE IT WITH THE KEY AND VALUE
     //changed entry to pointer, but that didn't seem to fix it, investigate
     newnode.entry = (ListEntry *)hashTableSafeMalloc(sizeof(ListEntry));
+    *(newnode.entry) = *(ListEntry *)hashTableSafeMalloc(sizeof(ListEntry));
     newnode.entry->key = newentrykey;
     newnode.entry->value = newentryvalue;
     newnode.next = EMPTY;
@@ -143,7 +135,7 @@ void insert(int newentryvalue)
     printf("there's an existing list");
     //see if it's in the list
     ListNode *currentnode = (hashtable.tableentrylists[newentrykey].head);
-    while(currentnode != NULL && currentnode->next != NULL && currentnode->entry->key != newentrykey)
+    while(currentnode != EMPTY && currentnode->next != EMPTY && currentnode->entry->key != newentrykey)
       currentnode = currentnode->next;
     if(currentnode->entry->key == newentrykey)
       //we found it, increment that entry in the list
@@ -154,7 +146,7 @@ void insert(int newentryvalue)
       ListNode newnode = *(ListNode *)hashTableSafeMalloc(sizeof(ListNode));
       newnode.entry->key = newentrykey;
       newnode.entry->value = newentryvalue;
-      newnode.next = NULL;
+      newnode.next = EMPTY;
       currentnode->next = &newnode;
     }
   }
@@ -176,7 +168,7 @@ void initializeTable()
   {
     List templist = newhashtablearray[i];
     templist = *(List *)hashTableSafeMalloc(sizeof(List));
-    templist.head = NULL;
+    templist.head = EMPTY;
     newhashtablearray[i] = templist;
   }
   hashtable.tableentrylists = newhashtablearray;
