@@ -1,9 +1,15 @@
 /*
   Brennan McFarland
   bfm21
-  McFarlandProject2.c
-  [DATE]
-  [DESCRIPTION]
+  McFarlandProject2.h
+  3/3/17
+  Given an packet trace file, analyzes it for information about ethernet,
+  ip properties, prints aggregated analysis of all packets to output,
+  -s prints trace summary
+  -e prints ethernet headers
+  -i prints ip headers
+  -t prints packet types
+  -m prints traffic matrix
 */
 
 #include <unistd.h> //for getopt and file operations
@@ -16,13 +22,6 @@
 #include "TrafficMatrix.c"
 #include "McFarlandProject2.h"
 
-
-/*
-  TODO
-  -may need to break up main function into components
-  -wrap long lines
-  -may want to move location of analyzePacketTrace, not sure
-*/
 
 //vars for operations
 FILE *tracefilestream;
@@ -37,20 +36,17 @@ struct iphdr tracepacketipheader;
 struct iphdr *tracepacketipheaderbuffer = &tracepacketipheader;
 struct iphdr tracepacketipheader;
 
-//int tempcounter = 0;
-//#define TEMPCOUNTERMAX 10 //TEST WITH 10 DON"T FORGET TO FREE MEMORY AND CLEAN UP
-
 //vars for aggregate data
-int numpackets = 0;
-double firstpackettimestamp = -1.0;
-double lastpackettimestamp = -1.0;
-int eth_numfullpackets = 0;
-int eth_numpartialpackets = 0;
-int numnonippackets = 0;
-int ip_numpartialpackets = 0;
-int ip_numpartialheaders = 0;
-int ip_numtcppackets = 0;
-int ip_numupdpackets = 0;
+int numpackets = INTINITIALIZER;
+double firstpackettimestamp = INVALIDDOUBLE;
+double lastpackettimestamp = INVALIDDOUBLE;
+int eth_numfullpackets = INTINITIALIZER;
+int eth_numpartialpackets = INTINITIALIZER;
+int numnonippackets = INTINITIALIZER;
+int ip_numfullheaders = INTINITIALIZER;
+int ip_numpartialheaders = INTINITIALIZER;
+int ip_numtcppackets = INTINITIALIZER;
+int ip_numupdpackets = INTINITIALIZER;
 
 
 //prints packet trace summary
@@ -63,7 +59,8 @@ void printTraceSummary()
 }
 
 //prints ethernet header info
-void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destinationaddress, unsigned short protocoltype)
+void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destinationaddress,
+  unsigned short protocoltype)
 {
   char *truncatedethernetheadermessage = "Ethernet-truncated";
   if(testStringEquality(sourceaddress, truncatedethernetheadermessage))
@@ -78,7 +75,8 @@ void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destin
     printMACAddress(destinationaddress);
     printf(" ");
     //if the least significant byte is nonzero it appends 0s
-    printf("0x%02x%02x\n", (protocoltype & 0xff00)/0xff, (protocoltype & 0x00ff));
+    printf("0x%02x%02x\n", (protocoltype & PROTOCOLTYPEMSBMASK)/PROTOCOLMASKMSBDIVISOR,
+      (protocoltype & PROTOCOLTYPELSBMASK));
   }
 }
 
@@ -116,18 +114,18 @@ void printPacketTypes()
 {
   printf("ETH: %d %d\n", eth_numfullpackets, eth_numpartialpackets);
   printf("NON-IP: %d\n", numnonippackets);
-  printf("IP: %d %d\n", ip_numpartialpackets, ip_numpartialheaders);
+  printf("IP: %d %d\n", ip_numfullheaders, ip_numpartialheaders);
   printf("SRC: %d\n", sourceiphashtablesize);
   printf("DST: %d\n", destiphashtablesize);
   printf("TRANSPORT: %d %d %d\n", ip_numtcppackets, ip_numupdpackets,
-    (ip_numpartialpackets-ip_numtcppackets-ip_numupdpackets));
+    (ip_numfullheaders-ip_numtcppackets-ip_numupdpackets));
 }
 
 //walks and prints a formatted representation of the traffic matrix
 void printTrafficMatrix()
 {
   int i;
-  for(i=0; i<trafficmatrixcapacity; i++)
+  for(i=INTINITIALIZER; i<trafficmatrixcapacity; i++)
   {
     MatrixListNode *currentnode = (trafficmatrix.tableentrylists[i].head);
     if(currentnode != NULL)
@@ -148,10 +146,10 @@ void printTrafficMatrix()
 //formats and prints a single MAC address
 void printMACAddress(char macaddress[MACADDRESSSIZE])
 {
-  int macaddressnumberbyte = (int)(macaddress[0]);
+  int macaddressnumberbyte = (int)(macaddress[INTINITIALIZER]);
   printf("%02x",(unsigned char)macaddressnumberbyte);
   int i;
-  for(i=1; i<MACADDRESSSIZE; i++)
+  for(i=OFFSETVALUE; i<MACADDRESSSIZE; i++)
   {
     macaddressnumberbyte = (int)(macaddress[i]);
     printf(":%02x",(unsigned char)macaddressnumberbyte);
@@ -161,10 +159,10 @@ void printMACAddress(char macaddress[MACADDRESSSIZE])
 //formats and prints a single IP address
 void printIPAddress(char ipaddress[IPADDRESSSIZE])
 {
-  int ipaddressnumberbyte = (int)(ipaddress[0]);
+  int ipaddressnumberbyte = (int)(ipaddress[INTINITIALIZER]);
   printf("%d",(unsigned char)ipaddressnumberbyte);
   int i;
-  for(i=1; i<IPADDRESSSIZE; i++)
+  for(i=OFFSETVALUE; i<IPADDRESSSIZE; i++)
   {
     ipaddressnumberbyte = (int)(ipaddress[i]);
     printf(".%d",(unsigned char)ipaddressnumberbyte);
@@ -175,13 +173,14 @@ void printIPAddress(char ipaddress[IPADDRESSSIZE])
 void analyzePacketTrace()
 {
   //read packet metadata
-  while(safeRead(tracefilestream, (void *)tracepacketmetainfobuffer, sizeof(PacketMetaInfo)) != 0)
+  while(safeRead(tracefilestream, (void *)tracepacketmetainfobuffer, sizeof(PacketMetaInfo))
+    != FALSE)
   {
     if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
       printf("Reading packet...\n");
     numpackets++;
     packetMetaInfoToHostOrder(tracepacketmetainfobuffer);
-    if(firstpackettimestamp == -1.0)
+    if(firstpackettimestamp == INVALIDDOUBLE)
     {
       firstpackettimestamp = formatTimeStamp(
         tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec);
@@ -193,14 +192,16 @@ void analyzePacketTrace()
     //read ip header
     char *formattedprotocoltype = safeMalloc(sizeof(unsigned short));
     sprintf(formattedprotocoltype, "0x%02x%02x",
-      (tracepacketethernetheader.eth_protocoltype & 0xff00)/0xff, (tracepacketethernetheader.eth_protocoltype & 0x00ff));
-    if((testStringEquality(formattedprotocoltype, "0x0800") == FALSE) && truncatedethheader == FALSE)
+      (tracepacketethernetheader.eth_protocoltype & PROTOCOLTYPEMSBMASK)/PROTOCOLMASKMSBDIVISOR,
+      (tracepacketethernetheader.eth_protocoltype & PROTOCOLTYPELSBMASK));
+    if((testStringEquality(formattedprotocoltype, "0x0800") == FALSE) && truncatedethheader
+      == FALSE)
     {
       numnonippackets++;
       if(flags[FLAG_PRINTIPHEADERS] == TRUE)
         printIPHeaderInfo(formatTimeStamp(
           tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
-          "non-IP", "", 0, 0, 0);
+          "non-IP", "", INTINITIALIZER, INTINITIALIZER, INTINITIALIZER);
     }
     else
     {
@@ -209,7 +210,8 @@ void analyzePacketTrace()
         printf("%d",tracepacketipheader.protocol);
     }
     //read any remaining bits
-    safeRead(tracefilestream, safeMalloc(tracepacketmetainfo.meta_caplen), tracepacketmetainfo.meta_caplen);
+    safeRead(tracefilestream, safeMalloc(tracepacketmetainfo.meta_caplen),
+      tracepacketmetainfo.meta_caplen);
   }
 
   lastpackettimestamp = formatTimeStamp(
@@ -231,7 +233,8 @@ int analyzePacketEthernetHeader(PacketMetaInfo *tracepacketmetainfo)
 {
   if(tracepacketmetainfo->meta_caplen >= sizeof(PacketEthernetHeader))
   {
-    safeRead(tracefilestream, (void *)tracepacketethernetheaderbuffer, sizeof(PacketEthernetHeader));
+    safeRead(tracefilestream, (void *)tracepacketethernetheaderbuffer,
+      sizeof(PacketEthernetHeader));
     tracepacketmetainfo->meta_caplen -= sizeof(PacketEthernetHeader);
     packetEthernetHeaderToHostOrder(tracepacketethernetheaderbuffer);
     if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE)
@@ -246,11 +249,11 @@ int analyzePacketEthernetHeader(PacketMetaInfo *tracepacketmetainfo)
   if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE)
     printEthernetHeaderInfo(formatTimeStamp(
       tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
-      "Ethernet-truncated", "", 0);
+      "Ethernet-truncated", "", INTINITIALIZER);
   if(flags[FLAG_PRINTIPHEADERS] == TRUE)
     printIPHeaderInfo(formatTimeStamp(
       tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
-      "unknown", "", 0, 0, 0);
+      "unknown", "", INTINITIALIZER, INTINITIALIZER, INTINITIALIZER);
   return TRUE;
 }
 
@@ -262,31 +265,29 @@ void analyzePacketIPHeader(int truncatedethhdr)
     safeRead(tracefilestream, (void *)tracepacketipheaderbuffer, sizeof(struct iphdr));
     iphdrToHostOrder(tracepacketipheaderbuffer);
     tracepacketmetainfo.meta_caplen -= sizeof(struct iphdr);
-    ip_numpartialpackets++;
-    if(tracepacketipheader.protocol == 6)
+    if(tracepacketmetainfo.meta_caplen+sizeof(struct iphdr) < tracepacketipheader.ihl*WORDSIZE)
+    {
+      ip_numpartialheaders++;
+      if(flags[FLAG_PRINTIPHEADERS] == TRUE)
+        printIPHeaderInfo(formatTimeStamp(
+          tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
+          "IP-truncated", "", INTINITIALIZER, INTINITIALIZER, INTINITIALIZER);
+      return;
+    }
+    ip_numfullheaders++;
+    if(tracepacketipheader.protocol == TCPPROTOCOLNUM)
       ip_numtcppackets++;
-    if(tracepacketipheader.protocol == 17)
+    if(tracepacketipheader.protocol == UDPPROTOCOLNUM)
       ip_numupdpackets++;
     insertSourceIP(tracepacketipheader.saddr);
     insertDestIP(tracepacketipheader.daddr);
     char *tracepacketipheadersourceaddress = formatIPAddress(tracepacketipheader.saddr);
     char **tracepacketipheadersourceaddressbuffer = &tracepacketipheadersourceaddress;
     char *tracepacketipheaderdestaddress = formatIPAddress(tracepacketipheader.daddr);
+    //assuming traffic matrix only counts values with full ip header
     char **tracepacketipheaderdestaddressbuffer = &tracepacketipheaderdestaddress;
-    //there's more source and destination address pairs than there should be
-    //according to the trace, investigate
-
-    //THERE'S THE CORRECT NUMBER OF THESE
-    //printf("%d %d\n", tracepacketipheader.saddr, tracepacketipheader.daddr);
-    //BUT NOT THESE
-    //printf("%s %s\n", tracepacketipheadersourceaddress, tracepacketipheaderdestaddress);
-    //they do have the same data, the strings just include newline chars that messes counting up
-    //if(tempcounter < TEMPCOUNTERMAX)
-    //{
       insertInTrafficMatrix(tracepacketipheadersourceaddressbuffer,
-        tracepacketipheaderdestaddressbuffer, tracepacketipheader.tot_len); //assuming traffic matrix only counts values with full ip header
-      //tempcounter++;
-    //}
+        tracepacketipheaderdestaddressbuffer, tracepacketipheader.tot_len);
     if(flags[FLAG_PRINTIPHEADERS] == TRUE)
     {
       printIPHeaderInfo(formatTimeStamp(
@@ -304,7 +305,7 @@ void analyzePacketIPHeader(int truncatedethhdr)
       if(flags[FLAG_PRINTIPHEADERS] == TRUE)
         printIPHeaderInfo(formatTimeStamp(
           tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
-          "IP-truncated", "", 0, 0, 0);
+          "IP-truncated", "", INTINITIALIZER, INTINITIALIZER, INTINITIALIZER);
     }
   }
 }
@@ -327,7 +328,6 @@ void packetEthernetHeaderToHostOrder(PacketEthernetHeader * packetethernetheader
 //converts data in iphdr to host order
 void iphdrToHostOrder(struct iphdr * packetipheader)
 {
-  //packetipheader->ihl = ntohl(packetipheader->ihl);
   packetipheader->version = ntohl(packetipheader->version);
   packetipheader->tot_len = ntohs(packetipheader->tot_len);
   packetipheader->id = ntohs(packetipheader->id);
@@ -345,7 +345,7 @@ int testStringEquality(char *string1, char *string2)
     return FALSE;
   }
   int i;
-  for(i=0; i<sizeof(string1)-1; i++)
+  for(i=INTINITIALIZER; i<sizeof(string1)-OFFSETVALUE; i++)
   {
     if(string1[i] != string2[i])
     {
@@ -360,9 +360,10 @@ char *formatIPAddress(u_int32_t ipaddressint)
 {
   char *ipaddressarray = safeMalloc(IPADDRESSSIZE);
   int i;
-  for(i=0; i<sizeof(ipaddressarray); i++)
+  for(i=INTINITIALIZER; i<sizeof(ipaddressarray); i++)
   {
-    ipaddressarray[i] = (ipaddressint >> 8*(sizeof(ipaddressarray)-1-i)) & 0xff;
+    ipaddressarray[i] = (ipaddressint >> BITSHIFTVALUE*(sizeof(ipaddressarray)-OFFSETVALUE-i))
+      & PROTOCOLMASKMSBDIVISOR;
   }
   return ipaddressarray;
 }
@@ -377,7 +378,7 @@ double formatTimeStamp(int secsinceepoch, int msecsincesec)
 double formatAsTrailingDecimal(int integerdigits)
 {
   double trailingdecimal = (double)integerdigits;
-  trailingdecimal = trailingdecimal/1000000;
+  trailingdecimal = trailingdecimal/TRAILINGDECIMALCONVERTER;
   return trailingdecimal;
 
 }
@@ -386,11 +387,11 @@ double formatAsTrailingDecimal(int integerdigits)
 void parseInput(int argc, char *argv[], char **tracefilename)
 {
   int i;
-  for(i=0; i<NUMFLAGS; i++)
+  for(i=INTINITIALIZER; i<NUMFLAGS; i++)
     flags[i] = FALSE;
   int input;
   //read input args into variables
-  while((input = getopt(argc, argv, "seitmvr:")) != -1)
+  while((input = getopt(argc, argv, "seitmvr:")) != FINISHED)
   {
     int prevtracefilenameset = flags[FLAG_TRACEFILENAME];
     char *option = parseInputArg(input);
@@ -405,7 +406,7 @@ void parseInput(int argc, char *argv[], char **tracefilename)
   if(flags[FLAG_TRACEFILENAME] == FALSE)
   {
     printf("Error: must specify an input file.\n");
-    exit(1);
+    exit(EXIT_ERRORCODE);
   }
 
   if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
@@ -442,11 +443,11 @@ char *parseInputArg(int inputargtoparse)
     case '?':
       if(optopt == 'c')
       {
-        exit(2);
+        exit(EXIT_ERRORCODEA);
       }
       else
       {
-        exit(3);
+        exit(EXIT_ERRORCODEB);
       }
     }
     return NULL;
@@ -455,10 +456,10 @@ char *parseInputArg(int inputargtoparse)
 int safeRead(FILE *filestream, void *readbuffer, int readbuffersize)
 {
   int readresult = fread(readbuffer,BYTESIZE,readbuffersize,filestream);
-  if(readresult == 0 && ferror(filestream) != 0)
+  if(readresult == FALSE && ferror(filestream) != FALSE)
   {
     printf("Error reading from file.\n");
-    exit(1);
+    exit(EXIT_ERRORCODE);
   }
   return readresult;
 }
@@ -469,7 +470,7 @@ void safeOpen(FILE **filestream, char *filename, char filemode)
   if((*filestream = fopen(filename,filemodeptr)) == NULL)
   {
     printf("Error: Unable to read from file.\n");
-    exit(1);
+    exit(EXIT_ERRORCODE);
   }
 }
 
@@ -479,7 +480,7 @@ void *safeMalloc (unsigned int sz)
     if ((p = (void *)malloc (sz)) == NULL)
     {
         printf ("memory allocation failed, exiting ...\n");
-        exit (1);
+        exit (EXIT_ERRORCODE);
     }
     memset (p,FALSE,sz);
     return (p);
@@ -496,9 +497,17 @@ int main(int argc, char *argv[])
 
   parseInput(argc, argv, &tracefilename);
 
+  if(flags[FLAG_PRINTTRACESUMMARY]+flags[FLAG_PRINTETHERNETHEADERS]+
+    flags[FLAG_PRINTIPHEADERS]+flags[FLAG_PRINTPACKETTYPES]+
+    flags[FLAG_PRINTTRAFFICMATRIX] != SINGLEARGCHECK)
+  {
+    printf("Error: must specify one and only one option!\n");
+    return EXIT_ERRORCODE;
+  }
+
   safeOpen(&tracefilestream, tracefilename, 'r');
 
   analyzePacketTrace();
 
-  return 0;
+  return EXIT_NOERROR;
 }

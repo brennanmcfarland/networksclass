@@ -1,7 +1,16 @@
+/*
+  Brennan McFarland
+  bfm21
+  TrafficMatrix.h
+  3/3/17
+  The header for TrafficMatrix.c
+*/
+
 #include "McFarlandNetworks.h"
 
 #define DEFAULTTRAFFICMATRIXSIZE 16
 #define TRAFFICMATRIXGROWTHFACTOR 2
+#define ENTRYCOUNTINITIALIZER 1
 
 typedef struct MatrixListEntry
 {
@@ -29,11 +38,18 @@ typedef struct TrafficMatrix
 } TrafficMatrix;
 
 void printTrafficMatrixDebug();
-MatrixListNode *findInTrafficMatrix(int entryipaddresssearchkey, char **sourceipaddresssearchvalue, char **destipaddresssearchvalue);
+MatrixListNode *findInTrafficMatrix(int entryipaddresssearchkey,
+  char **sourceipaddresssearchvalue, char **destipaddresssearchvalue);
 int trafficMatrixTestStringEquality(char *string1, char *string2);
-void initializeTrafficMatrixList(int listfirstentryipaddresskey, char **listfirstentrysourceipaddress, char **listfirstentrydestipaddress, int listfirstentrydatavol);
-void initializeNewTrafficMatrixEntry(int newentryipaddresskey, char **newentrysourceipaddress, char **newentrydestipaddress, int newentrydatavol, MatrixListNode **newnode);
-void insertInTrafficMatrix(char **newentrysourceipaddress, char **newentrydestipaddress, int newentrydatavol);
-unsigned int trafficMatrixHashCode(char **sourceipaddresstohash, char **destipaddresstohash);
+void initializeTrafficMatrixList(int listfirstentryipaddresskey,
+  char **listfirstentrysourceipaddress, char **listfirstentrydestipaddress,
+  int listfirstentrydatavol);
+void initializeNewTrafficMatrixEntry(int newentryipaddresskey,
+  char **newentrysourceipaddress, char **newentrydestipaddress,
+  int newentrydatavol, MatrixListNode **newnode);
+void insertInTrafficMatrix(char **newentrysourceipaddress,
+  char **newentrydestipaddress, int newentrydatavol);
+unsigned int trafficMatrixHashCode(char **sourceipaddresstohash,
+  char **destipaddresstohash);
 void initializeTrafficMatrix();
 void *trafficMatrixSafeMalloc (unsigned int sz);

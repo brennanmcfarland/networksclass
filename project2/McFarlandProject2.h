@@ -2,7 +2,7 @@
   Brennan McFarland
   bfm21
   McFarlandProject2.h
-  [DATE]
+  3/3/17
   The header for McFarlandProject2.c
 */
 #define TRUE 1
@@ -23,6 +23,20 @@
 #define BYTESIZE 1
 #define WORDSIZE 4
 
+#define PROTOCOLTYPEMSBMASK 0xff00
+#define PROTOCOLTYPELSBMASK 0x00ff
+#define PROTOCOLMASKMSBDIVISOR 0xff
+
+#define TCPPROTOCOLNUM 6
+#define UDPPROTOCOLNUM 17
+
+#define TRAILINGDECIMALCONVERTER 1000000
+
+#define FINISHED -1
+#define EXIT_ERRORCODEA 2
+#define EXIT_ERRORCODEB 3
+#define SINGLEARGCHECK 1
+
 typedef struct PacketMetaInfo
 {
   unsigned int meta_secsinceepoch;
@@ -39,7 +53,8 @@ typedef struct PacketEthernetHeader
 } PacketEthernetHeader;
 
 void printTraceSummary();
-void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destinationaddress, unsigned short protocoltype);
+void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destinationaddress,
+  unsigned short protocoltype);
 void printIPHeaderInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   char destinationaddress[IPADDRESSSIZE], unsigned int ihl, u_int8_t protocol, u_int8_t ttl);
 void printPacketTypes();

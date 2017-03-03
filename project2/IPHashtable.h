@@ -1,7 +1,16 @@
+/*
+  Brennan McFarland
+  bfm21
+  IPHashtable.h
+  3/3/17
+  The header for IPHashtable.c
+*/
+
 #include "McFarlandNetworks.h"
 
-#define DEFAULTTABLESIZE 64
+#define DEFAULTIPHASHTABLESIZE 64
 #define HASHTABLEGROWTHFACTOR 2
+#define ENTRYCOUNTINITIALIZER 1
 
 typedef struct ListEntry
 {
