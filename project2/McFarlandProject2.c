@@ -37,6 +37,9 @@ struct iphdr tracepacketipheader;
 struct iphdr *tracepacketipheaderbuffer = &tracepacketipheader;
 struct iphdr tracepacketipheader;
 
+//int tempcounter = 0;
+//#define TEMPCOUNTERMAX 10 //TEST WITH 10 DON"T FORGET TO FREE MEMORY AND CLEAN UP
+
 //vars for aggregate data
 int numpackets = 0;
 double firstpackettimestamp = -1.0;
@@ -185,13 +188,13 @@ void analyzePacketTrace()
     }
 
     //read ethernet header
-    analyzePacketEthernetHeader(tracepacketmetainfobuffer);
+    int truncatedethheader = analyzePacketEthernetHeader(tracepacketmetainfobuffer);
 
     //read ip header
     char *formattedprotocoltype = safeMalloc(sizeof(unsigned short));
     sprintf(formattedprotocoltype, "0x%02x%02x",
       (tracepacketethernetheader.eth_protocoltype & 0xff00)/0xff, (tracepacketethernetheader.eth_protocoltype & 0x00ff));
-    if((testStringEquality(formattedprotocoltype, "0x0800") == FALSE))
+    if((testStringEquality(formattedprotocoltype, "0x0800") == FALSE) && truncatedethheader == FALSE)
     {
       numnonippackets++;
       if(flags[FLAG_PRINTIPHEADERS] == TRUE)
@@ -201,7 +204,7 @@ void analyzePacketTrace()
     }
     else
     {
-      analyzePacketIPHeader();
+      analyzePacketIPHeader(truncatedethheader);
       if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
         printf("%d",tracepacketipheader.protocol);
     }
@@ -223,8 +226,8 @@ void analyzePacketTrace()
     printTrafficMatrix();
 }
 
-//analyze a single ethernet packet header
-void analyzePacketEthernetHeader(PacketMetaInfo *tracepacketmetainfo)
+//analyze a single ethernet packet header, FALSE if not truncated/successful
+int analyzePacketEthernetHeader(PacketMetaInfo *tracepacketmetainfo)
 {
   if(tracepacketmetainfo->meta_caplen >= sizeof(PacketEthernetHeader))
   {
@@ -237,23 +240,22 @@ void analyzePacketEthernetHeader(PacketMetaInfo *tracepacketmetainfo)
         tracepacketethernetheader.eth_srcaddress, tracepacketethernetheader.eth_destaddress,
         tracepacketethernetheader.eth_protocoltype);
     eth_numfullpackets++;
+    return FALSE;
   }
-  else
-  {
-    eth_numpartialpackets++;
-    if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE)
-      printEthernetHeaderInfo(formatTimeStamp(
-        tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
-        "Ethernet-truncated", "", 0);
-    if(flags[FLAG_PRINTIPHEADERS] == TRUE)
-      printIPHeaderInfo(formatTimeStamp(
-        tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
-        "unknown", "", 0, 0, 0);
-  }
+  eth_numpartialpackets++;
+  if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE)
+    printEthernetHeaderInfo(formatTimeStamp(
+      tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
+      "Ethernet-truncated", "", 0);
+  if(flags[FLAG_PRINTIPHEADERS] == TRUE)
+    printIPHeaderInfo(formatTimeStamp(
+      tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
+      "unknown", "", 0, 0, 0);
+  return TRUE;
 }
 
 //analyze a single ip packet header
-void analyzePacketIPHeader()
+void analyzePacketIPHeader(int truncatedethhdr)
 {
   if(tracepacketmetainfo.meta_caplen >= sizeof(struct iphdr))
   {
@@ -271,24 +273,39 @@ void analyzePacketIPHeader()
     char **tracepacketipheadersourceaddressbuffer = &tracepacketipheadersourceaddress;
     char *tracepacketipheaderdestaddress = formatIPAddress(tracepacketipheader.daddr);
     char **tracepacketipheaderdestaddressbuffer = &tracepacketipheaderdestaddress;
-    insertInTrafficMatrix(tracepacketipheadersourceaddressbuffer,
-      tracepacketipheaderdestaddressbuffer, tracepacketipheader.tot_len); //assuming traffic matrix only counts values with full ip header
+    //there's more source and destination address pairs than there should be
+    //according to the trace, investigate
+
+    //THERE'S THE CORRECT NUMBER OF THESE
+    //printf("%d %d\n", tracepacketipheader.saddr, tracepacketipheader.daddr);
+    //BUT NOT THESE
+    //printf("%s %s\n", tracepacketipheadersourceaddress, tracepacketipheaderdestaddress);
+    //they do have the same data, the strings just include newline chars that messes counting up
+    //if(tempcounter < TEMPCOUNTERMAX)
+    //{
+      insertInTrafficMatrix(tracepacketipheadersourceaddressbuffer,
+        tracepacketipheaderdestaddressbuffer, tracepacketipheader.tot_len); //assuming traffic matrix only counts values with full ip header
+      //tempcounter++;
+    //}
     if(flags[FLAG_PRINTIPHEADERS] == TRUE)
     {
       printIPHeaderInfo(formatTimeStamp(
         tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
-        formatIPAddress(tracepacketipheader.saddr), formatIPAddress(tracepacketipheader.daddr),
+        tracepacketipheadersourceaddress, tracepacketipheaderdestaddress,
         tracepacketipheader.ihl, tracepacketipheader.protocol,
         tracepacketipheader.ttl);
     }
   }
   else
   {
-    ip_numpartialheaders++;
-    if(flags[FLAG_PRINTIPHEADERS] == TRUE)
-      printIPHeaderInfo(formatTimeStamp(
-        tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
-        "IP-truncated", "", 0, 0, 0);
+    if(truncatedethhdr == FALSE)
+    {
+      ip_numpartialheaders++;
+      if(flags[FLAG_PRINTIPHEADERS] == TRUE)
+        printIPHeaderInfo(formatTimeStamp(
+          tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
+          "IP-truncated", "", 0, 0, 0);
+    }
   }
 }
 

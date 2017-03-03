@@ -74,7 +74,7 @@ void printSourceIPTable()
     {
       do
       {
-        printf("%d",currentnode->entry->value);
+        printf("%d|",currentnode->entry->value);
       }while((currentnode = currentnode->next) != NULL);
     }
     printf("\n");
@@ -92,7 +92,7 @@ void printDestIPTable()
     {
       do
       {
-        printf("%d",currentnode->entry->value);
+        printf("%d|",currentnode->entry->value);
       }while((currentnode = currentnode->next) != NULL);
     }
     printf("\n");
@@ -193,7 +193,10 @@ void insertSourceIP(u_int32_t newentryvalue)
   //if it already exists in the list, increment the # occurences, if not create
   //first check if list DNE
   if(sourceiphashtable.tableentrylists[newentrykey].head == NULL)
+  {
     initializeSourceIPTableList(newentrykey, newentryvalue);
+    sourceiphashtablesize++;
+  }
   else
   {
     //see if it's in the list, if so increment value, if not add it
@@ -206,9 +209,9 @@ void insertSourceIP(u_int32_t newentryvalue)
       ListNode **currentnodebuffer = (ListNode **)hashTableSafeMalloc(POINTERSIZE);
       currentnodebuffer = &(currentnode->next);
       initializeNewEntry(newentrykey, newentryvalue, currentnodebuffer); //if it's null, should already be handled above
+      sourceiphashtablesize++;
     }
   }
-  sourceiphashtablesize++;
 }
 
 void insertDestIP(u_int32_t newentryvalue)
@@ -217,7 +220,10 @@ void insertDestIP(u_int32_t newentryvalue)
   //if it already exists in the list, increment the # occurences, if not create
   //first check if list DNE
   if(destiphashtable.tableentrylists[newentrykey].head == NULL)
+  {
     initializeDestIPTableList(newentrykey, newentryvalue);
+    destiphashtablesize++;
+  }
   else
   {
     //see if it's in the list, if so increment value, if not add it
@@ -230,9 +236,9 @@ void insertDestIP(u_int32_t newentryvalue)
       ListNode **currentnodebuffer = (ListNode **)hashTableSafeMalloc(POINTERSIZE);
       currentnodebuffer = &(currentnode->next);
       initializeNewEntry(newentrykey, newentryvalue, currentnodebuffer); //if it's null, should already be handled above
+      destiphashtablesize++;
     }
   }
-  destiphashtablesize++;
 }
 
 u_int32_t hashCode(u_int32_t counttohash)

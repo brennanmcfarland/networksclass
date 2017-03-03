@@ -1,6 +1,6 @@
 #include "McFarlandNetworks.h"
 
-#define DEFAULTTRAFFICMATRIXSIZE 256
+#define DEFAULTTRAFFICMATRIXSIZE 16
 #define TRAFFICMATRIXGROWTHFACTOR 2
 
 typedef struct MatrixListEntry

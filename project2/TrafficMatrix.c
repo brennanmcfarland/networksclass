@@ -21,8 +21,8 @@ void printTrafficMatrixDebug()
     {
       do
       {
-        printf(" %s|%s ",currentnode->entry->sourceaddressvalue,
-          currentnode->entry->destinationaddressvalue);
+        //printf(" %s|%s ",currentnode->entry->sourceaddressvalue,
+        //  currentnode->entry->destinationaddressvalue);
       }while((currentnode = currentnode->next) != NULL);
     }
     printf("\n");
@@ -74,8 +74,12 @@ MatrixListNode *findInTrafficMatrix(int entryipaddresssearchkey, char **sourceip
   //see if it's in the list
   MatrixListNode *currentnode = (trafficmatrix.tableentrylists[entryipaddresssearchkey].head);
   while(currentnode->next != NULL &&
-    ((currentnode->entry->sourceaddressvalue != *sourceipaddresssearchvalue)
-    || currentnode->entry->destinationaddressvalue != *destipaddresssearchvalue))
+    //((currentnode->entry->sourceaddressvalue != *sourceipaddresssearchvalue)
+    ((trafficMatrixTestStringEquality(currentnode->entry->sourceaddressvalue,
+      *sourceipaddresssearchvalue) == FALSE)
+    //|| currentnode->entry->destinationaddressvalue != *destipaddresssearchvalue))
+    || (trafficMatrixTestStringEquality(currentnode->entry->destinationaddressvalue,
+      *destipaddresssearchvalue) == FALSE)))
     currentnode = currentnode->next;
   return currentnode;
 }
@@ -123,8 +127,17 @@ void insertInTrafficMatrix(char **newentrysourceipaddress, char **newentrydestip
   unsigned int newentryipaddresskey = trafficMatrixHashCode(newentrysourceipaddress, newentrydestipaddress)%(unsigned int)trafficmatrixcapacity;
   //if it already exists in the list, increment the # occurences, if not create
   //first check if list DNE
+  /*
+    IT'S CREATING MORE NEW LISTS ALONE AND MORE NEW ENTRIES ALONE THAN there
+    SHOULD BE TOTAL ENTRIES
+  */
   if(trafficmatrix.tableentrylists[newentryipaddresskey].head == NULL)
+  {
     initializeTrafficMatrixList(newentryipaddresskey, newentrysourceipaddress, newentrydestipaddress, newentrydatavol);
+    trafficmatrixsize++;
+    //the hash values never overlap when they shouldn'twhen creating new lists
+    //printf("NEW LIST for %u\n", newentryipaddresskey);
+  }
   else
   {
     //printf("key is %d\n", newentryipaddresskey);
@@ -136,17 +149,19 @@ void insertInTrafficMatrix(char **newentrysourceipaddress, char **newentrydestip
       *newentrysourceipaddress) == TRUE) && trafficMatrixTestStringEquality(
         currentnode->entry->destinationaddressvalue, *newentrydestipaddress) == TRUE)
     {
+      //printf("FOUND MATCH");
       currentnode->entry->count++;
       currentnode->entry->datavol += newentrydatavol;
     }
-    else if(currentnode != NULL) //it never gets to this point, why?  find must be coming back as null
+    else if(currentnode != NULL)
     {
+      //printf("NO MATCH");
       MatrixListNode **currentnodebuffer = (MatrixListNode **)trafficMatrixSafeMalloc(POINTERSIZE);
       currentnodebuffer = &(currentnode->next);
       initializeNewTrafficMatrixEntry(newentryipaddresskey, newentrysourceipaddress, newentrydestipaddress, newentrydatavol, currentnodebuffer); //if it's null, should already be handled above
+      trafficmatrixsize++;
     }
   }
-  trafficmatrixsize++;
 }
 
 unsigned int trafficMatrixHashCode(char **sourceipaddresstohash, char **destipaddresstohash)
@@ -156,6 +171,7 @@ unsigned int trafficMatrixHashCode(char **sourceipaddresstohash, char **destipad
   unsigned int hashcode = (unsigned int)(*sourceipaddresstohash[0])
     +(unsigned int)(*sourceipaddresstohash[1])+(unsigned int)(*destipaddresstohash[0])
     +(unsigned int)(*destipaddresstohash[1]);
+  //printf("%u\n", hashcode);
   return hashcode;
 }
 
