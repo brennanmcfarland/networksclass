@@ -35,6 +35,7 @@ void printSourceIPTable()
         printf("%d|",currentbucketnodeptr->entry->value);
       }while((currentbucketnodeptr = currentbucketnodeptr->next) != NULL);
     }
+    free(currentbucketnodeptr);
     printf("\n");
   }
 }
@@ -53,6 +54,7 @@ void printDestIPTable()
         printf("%d|",currentbucketnodeptr->entry->value);
       }while((currentbucketnodeptr = currentbucketnodeptr->next) != NULL);
     }
+    free(currentbucketnodeptr);
     printf("\n");
   }
 }

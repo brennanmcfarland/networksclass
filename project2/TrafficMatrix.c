@@ -31,6 +31,7 @@ void printTrafficMatrixDebug()
       {
       }while((currentbucketnodeptr = currentbucketnodeptr->next) != NULL);
     }
+    free(currentbucketnodeptr);
     printf("\n");
   }
 }
