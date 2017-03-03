@@ -12,8 +12,10 @@
 #include <string.h> //for memset
 #include <arpa/inet.h> //for converting between network and host order
 #include </usr/include/netinet/ip.h> //for the iphdr struct
-#include "Hashtable.c"
+#include "IPHashtable.c"
+#include "TrafficMatrix.c"
 #include "McFarlandProject2.h"
+
 
 /*
   TODO
@@ -118,6 +120,28 @@ void printPacketTypes()
     (ip_numpartialpackets-ip_numtcppackets-ip_numupdpackets));
 }
 
+//walks and prints a formatted representation of the traffic matrix
+void printTrafficMatrix()
+{
+  int i;
+  for(i=0; i<sizeof(trafficmatrix.tableentrylists); i++)
+  {
+    MatrixListNode *currentnode = (trafficmatrix.tableentrylists[i].head);
+    if(currentnode != NULL)
+    {
+      do
+      {
+        printIPAddress(currentnode->entry->sourceaddressvalue);
+        printf(" ");
+        printIPAddress(currentnode->entry->destinationaddressvalue);
+        printf(" %d ", currentnode->entry->count);
+        printf("%d", currentnode->entry->datavol);
+        printf("\n");
+      }while((currentnode = currentnode->next) != NULL);
+    }
+  }
+}
+
 //formats and prints a single MAC address
 void printMACAddress(char macaddress[MACADDRESSSIZE])
 {
@@ -195,6 +219,8 @@ void analyzePacketTrace()
     printTraceSummary();
   if(flags[FLAG_PRINTPACKETTYPES] == TRUE)
     printPacketTypes();
+  if(flags[FLAG_PRINTTRAFFICMATRIX] == TRUE)
+    printTrafficMatrix();
 }
 
 //analyze a single ethernet packet header
@@ -241,6 +267,12 @@ void analyzePacketIPHeader()
       ip_numupdpackets++;
     insertSourceIP(tracepacketipheader.saddr);
     insertDestIP(tracepacketipheader.daddr);
+    char *tracepacketipheadersourceaddress = formatIPAddress(tracepacketipheader.saddr);
+    char **tracepacketipheadersourceaddressbuffer = &tracepacketipheadersourceaddress;
+    char *tracepacketipheaderdestaddress = formatIPAddress(tracepacketipheader.daddr);
+    char **tracepacketipheaderdestaddressbuffer = &tracepacketipheaderdestaddress;
+    insertInTrafficMatrix(tracepacketipheadersourceaddressbuffer,
+      tracepacketipheaderdestaddressbuffer, tracepacketipheader.tot_len); //assuming traffic matrix only counts values with full ip header
     if(flags[FLAG_PRINTIPHEADERS] == TRUE)
     {
       printIPHeaderInfo(formatTimeStamp(
@@ -443,6 +475,7 @@ int main(int argc, char *argv[])
   tracepacketethernetheader = *(PacketEthernetHeader *)safeMalloc(sizeof(PacketEthernetHeader));
   tracepacketipheader = *(struct iphdr *)safeMalloc(sizeof(struct iphdr));
   initializeTables();
+  initializeTrafficMatrix();
 
   parseInput(argc, argv, &tracefilename);
 
