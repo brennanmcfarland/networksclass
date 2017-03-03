@@ -1,13 +1,17 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h> //for memset
+#include </usr/include/netinet/ip.h> //for u_int32_t
 #include "Hashtable.h"
 
 #define POINTERSIZE sizeof(List *)
 
-Hashtable hashtable;
-int hashtablesize = 0;
-int hashtablecapacity = DEFAULTTABLESIZE;
+Hashtable sourceiphashtable;
+Hashtable destiphashtable;
+int sourceiphashtablesize = 0;
+int destiphashtablesize = 0;
+int sourceiphashtablecapacity = DEFAULTTABLESIZE;
+int destiphashtablecapacity = DEFAULTTABLESIZE;
 
 //notes commented out, delete this function
 void tempNotes()
@@ -61,12 +65,30 @@ return np;
 }
 
 //for debugging
-void printTable()
+void printSourceIPTable()
 {
   int i;
-  for(i=0; i<sizeof(hashtable.tableentrylists); i++)
+  for(i=0; i<sizeof(sourceiphashtable.tableentrylists); i++)
   {
-    ListNode *currentnode = (hashtable.tableentrylists[i].head);
+    ListNode *currentnode = (sourceiphashtable.tableentrylists[i].head);
+    if(currentnode != NULL)
+    {
+      do
+      {
+        printf("%d",currentnode->entry->value);
+      }while((currentnode = currentnode->next) != NULL);
+    }
+    printf("\n");
+  }
+}
+
+//for debugging
+void printDestIPTable()
+{
+  int i;
+  for(i=0; i<sizeof(destiphashtable.tableentrylists); i++)
+  {
+    ListNode *currentnode = (destiphashtable.tableentrylists[i].head);
     if(currentnode != NULL)
     {
       do
@@ -114,29 +136,46 @@ void growTable()
 
 //if found, return pointer to node, if not and list exists, return pointer to
 //last element in list, if list dne, return null
-ListNode *find(int entrysearchkey, int entrysearchvalue)
+ListNode *findInSourceIPTable(u_int32_t entrysearchkey, u_int32_t entrysearchvalue)
 {
   //if the list DNE, it's not there
-  if(hashtable.tableentrylists[entrysearchkey].head == NULL)
+  if(sourceiphashtable.tableentrylists[entrysearchkey].head == NULL)
     return NULL;
   //see if it's in the list
-  ListNode *currentnode = (hashtable.tableentrylists[entrysearchkey].head);
+  ListNode *currentnode = (sourceiphashtable.tableentrylists[entrysearchkey].head);
   while(currentnode->next != NULL && currentnode->entry->value != entrysearchvalue)
     currentnode = currentnode->next;
-  //if(currentnode->entry->value == entrysearchvalue)
-  //  return currentnode;
   return currentnode;
 }
 
-void initializeTableList(int listfirstentrykey, int listfirstentryvalue)
+ListNode *findInDestIPTable(u_int32_t entrysearchkey, u_int32_t entrysearchvalue)
+{
+  //if the list DNE, it's not there
+  if(destiphashtable.tableentrylists[entrysearchkey].head == NULL)
+    return NULL;
+  //see if it's in the list
+  ListNode *currentnode = (destiphashtable.tableentrylists[entrysearchkey].head);
+  while(currentnode->next != NULL && currentnode->entry->value != entrysearchvalue)
+    currentnode = currentnode->next;
+  return currentnode;
+}
+
+void initializeSourceIPTableList(u_int32_t listfirstentrykey, u_int32_t listfirstentryvalue)
 {
   ListNode **headbuffer = (ListNode **)hashTableSafeMalloc(POINTERSIZE);
-  headbuffer = &(hashtable.tableentrylists[listfirstentrykey].head);
+  headbuffer = &(sourceiphashtable.tableentrylists[listfirstentrykey].head);
+  initializeNewEntry(listfirstentrykey, listfirstentryvalue, headbuffer);
+}
+
+void initializeDestIPTableList(u_int32_t listfirstentrykey, u_int32_t listfirstentryvalue)
+{
+  ListNode **headbuffer = (ListNode **)hashTableSafeMalloc(POINTERSIZE);
+  headbuffer = &(destiphashtable.tableentrylists[listfirstentrykey].head);
   initializeNewEntry(listfirstentrykey, listfirstentryvalue, headbuffer);
 }
 
 //it's returning the memory as blank since it's in the function
-void initializeNewEntry(int newentrykey, int newentryvalue, ListNode **newnode)
+void initializeNewEntry(u_int32_t newentrykey, u_int32_t newentryvalue, ListNode **newnode)
 {
   *newnode = (ListNode *)hashTableSafeMalloc(sizeof(ListNode));
   //IT'S OVERWRITING THE LIST POINTER DATA BEFORE IT WITH THE KEY AND VALUE
@@ -149,18 +188,18 @@ void initializeNewEntry(int newentrykey, int newentryvalue, ListNode **newnode)
   (*newnode)->next = EMPTY;
 }
 
-void insert(int newentryvalue)
+void insertSourceIP(u_int32_t newentryvalue)
 {
-  int newentrykey = hashCode(newentryvalue)%hashtablecapacity;
+  u_int32_t newentrykey = hashCode(newentryvalue)%sourceiphashtablecapacity;
   //if it already exists in the list, increment the # occurences, if not create
   //first check if list DNE
-  if(hashtable.tableentrylists[newentrykey].head == NULL)
-    initializeTableList(newentrykey, newentryvalue);
+  if(sourceiphashtable.tableentrylists[newentrykey].head == NULL)
+    initializeSourceIPTableList(newentrykey, newentryvalue);
   else
   {
     //see if it's in the list, if so increment value, if not add it
-    ListNode *currentnode = (hashtable.tableentrylists[newentrykey].head);
-    currentnode = find(newentrykey, newentryvalue);
+    ListNode *currentnode = (sourceiphashtable.tableentrylists[newentrykey].head);
+    currentnode = findInSourceIPTable(newentrykey, newentryvalue);
     if(currentnode != NULL && currentnode->entry->value == newentryvalue)
       currentnode->entry->count++;
     else if(currentnode != NULL) //it never gets to this point, why?  find must be coming back as null
@@ -170,37 +209,55 @@ void insert(int newentryvalue)
       initializeNewEntry(newentrykey, newentryvalue, currentnodebuffer); //if it's null, should already be handled above
     }
   }
+  sourceiphashtablesize++;
 }
 
-int hashCode(int counttohash)
+void insertDestIP(u_int32_t newentryvalue)
+{
+  u_int32_t newentrykey = hashCode(newentryvalue)%destiphashtablecapacity;
+  //if it already exists in the list, increment the # occurences, if not create
+  //first check if list DNE
+  if(destiphashtable.tableentrylists[newentrykey].head == NULL)
+    initializeDestIPTableList(newentrykey, newentryvalue);
+  else
+  {
+    //see if it's in the list, if so increment value, if not add it
+    ListNode *currentnode = (destiphashtable.tableentrylists[newentrykey].head);
+    currentnode = findInDestIPTable(newentrykey, newentryvalue);
+    if(currentnode != NULL && currentnode->entry->value == newentryvalue)
+      currentnode->entry->count++;
+    else if(currentnode != NULL) //it never gets to this point, why?  find must be coming back as null
+    {
+      ListNode **currentnodebuffer = (ListNode **)hashTableSafeMalloc(POINTERSIZE);
+      currentnodebuffer = &(currentnode->next);
+      initializeNewEntry(newentrykey, newentryvalue, currentnodebuffer); //if it's null, should already be handled above
+    }
+  }
+  destiphashtablesize++;
+}
+
+u_int32_t hashCode(u_int32_t counttohash)
 {
   return counttohash;
 }
 
-void initializeTable()
+void initializeTables()
 {
-  //allocate and clear space for an array of pointers to list heads
-  //ListNode temp[DEFAULTTABLESIZE] = hashTableSafeMalloc(sizeof(ListNode)*DEFAULTTABLESIZE*POINTERSIZE);
-
-  //List newhashtablearray[DEFAULTTABLESIZE];
-  hashtable.tableentrylists = hashTableSafeMalloc(DEFAULTTABLESIZE*sizeof(List)*POINTERSIZE);
+  sourceiphashtable.tableentrylists = hashTableSafeMalloc(DEFAULTTABLESIZE*sizeof(List)*POINTERSIZE);
+  destiphashtable.tableentrylists = hashTableSafeMalloc(DEFAULTTABLESIZE*sizeof(List)*POINTERSIZE);
   //clear the array
   int i;
   for(i=0; i<DEFAULTTABLESIZE; i++)
   {
-    //List templist = newhashtablearray[i];
-    //templist = *(List *)hashTableSafeMalloc(sizeof(List));
-    //templist.head = NULL;
-    //newhashtablearray[i] = templist;
-
-    //newhashtablearray[i] = *(List *)hashTableSafeMalloc(sizeof(List));
-    //newhashtablearray[i].head = NULL;
-    hashtable.tableentrylists[i] = *(List *)hashTableSafeMalloc(sizeof(List));
-    hashtable.tableentrylists[i].head = NULL;
+    sourceiphashtable.tableentrylists[i] = *(List *)hashTableSafeMalloc(sizeof(List));
+    sourceiphashtable.tableentrylists[i].head = NULL;
+    destiphashtable.tableentrylists[i] = *(List *)hashTableSafeMalloc(sizeof(List));
+    destiphashtable.tableentrylists[i].head = NULL;
   }
-  //hashtable.tableentrylists = newhashtablearray;
-  hashtablesize = 0;
-  hashtablecapacity = DEFAULTTABLESIZE;
+  sourceiphashtablesize = 0;
+  destiphashtablesize = 0;
+  sourceiphashtablecapacity = DEFAULTTABLESIZE;
+  destiphashtablecapacity = DEFAULTTABLESIZE;
 }
 
 void *hashTableSafeMalloc (unsigned int sz)
@@ -215,19 +272,17 @@ void *hashTableSafeMalloc (unsigned int sz)
     return (p);
 }
 
-int main()
+/*int main()
 {
-  initializeTable();
-
-
-
-  insert(3);
-  insert(1);
-  insert(4);
-  insert(0);
-  insert(5);
-  insert(6);
-  printTable();
+  initializeTables();
+  insertSourceIP(3);
+  insertDestIP(1);
+  insertSourceIP(4);
+  insertSourceIP(0);
+  insertDestIP(5);
+  insertDestIP(6);
+  printSourceIPTable();
+  printDestIPTable();
 
   return 0;
-}
+}*/

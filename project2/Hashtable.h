@@ -4,8 +4,8 @@
 
 typedef struct ListEntry
 {
-  int key;
-  int value;
+  u_int32_t key;
+  u_int32_t value;
   int count;
 } ListEntry;
 
@@ -25,12 +25,16 @@ typedef struct Hashtable
   List *tableentrylists;
 } Hashtable;
 
-void printTable();
+void printSourceIPTable();
+void printDestIPTable();
 //void growTable();
-ListNode *find(int entrysearchkey, int entrysearchvalue);
-void initializeTableList(int listfirstentrykey, int listfirstentryvalue);
-void initializeNewEntry(int newentrykey, int newentryvalue, ListNode **newnode);
-void insert(int newentryvalue);
-int hashCode(int counttohash);
-void initializeTable();
+ListNode *findInSourceIPTable(u_int32_t entrysearchkey, u_int32_t entrysearchvalue);
+ListNode *findInDestIPTable(u_int32_t entrysearchkey, u_int32_t entrysearchvalue);
+void initializeSourceIPTableList(u_int32_t listfirstentrykey, u_int32_t listfirstentryvalue);
+void initializeDestIPTableList(u_int32_t listfirstentrykey, u_int32_t listfirstentryvalue);
+void initializeNewEntry(u_int32_t newentrykey, u_int32_t newentryvalue, ListNode **newnode);
+void insertSourceIP(u_int32_t newentryvalue);
+void insertDestIP(u_int32_t newentryvalue);
+u_int32_t hashCode(u_int32_t counttohash);
+void initializeTables();
 void *hashTableSafeMalloc (unsigned int sz);

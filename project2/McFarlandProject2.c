@@ -44,8 +44,6 @@ int eth_numpartialpackets = 0;
 int numnonippackets = 0;
 int ip_numpartialpackets = 0;
 int ip_numpartialheaders = 0;
-int ip_numsourceaddresses = 0;
-int ip_numdestinationaddresses = 0;
 int ip_numtcppackets = 0;
 int ip_numupdpackets = 0;
 
@@ -114,8 +112,8 @@ void printPacketTypes()
   printf("ETH: %d %d\n", eth_numfullpackets, eth_numpartialpackets);
   printf("NON-IP: %d\n", numnonippackets);
   printf("IP: %d %d\n", ip_numpartialpackets, ip_numpartialheaders);
-  printf("SRC: %d\n", ip_numsourceaddresses);
-  printf("DST: %d\n", ip_numdestinationaddresses);
+  printf("SRC: %d\n", sourceiphashtablesize);
+  printf("DST: %d\n", destiphashtablesize);
   printf("TRANSPORT: %d %d %d\n", ip_numtcppackets, ip_numupdpackets,
     (ip_numpartialpackets-ip_numtcppackets-ip_numupdpackets));
 }
@@ -241,6 +239,8 @@ void analyzePacketIPHeader()
       ip_numtcppackets++;
     if(tracepacketipheader.protocol == 17)
       ip_numupdpackets++;
+    insertSourceIP(tracepacketipheader.saddr);
+    insertDestIP(tracepacketipheader.daddr);
     if(flags[FLAG_PRINTIPHEADERS] == TRUE)
     {
       printIPHeaderInfo(formatTimeStamp(
@@ -442,7 +442,7 @@ int main(int argc, char *argv[])
   tracepacketmetainfo = *(PacketMetaInfo *)safeMalloc(sizeof(PacketMetaInfo));
   tracepacketethernetheader = *(PacketEthernetHeader *)safeMalloc(sizeof(PacketEthernetHeader));
   tracepacketipheader = *(struct iphdr *)safeMalloc(sizeof(struct iphdr));
-
+  initializeTables();
 
   parseInput(argc, argv, &tracefilename);
 
