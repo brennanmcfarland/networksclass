@@ -124,7 +124,7 @@ void printPacketTypes()
 void printTrafficMatrix()
 {
   int i;
-  for(i=0; i<sizeof(trafficmatrix.tableentrylists); i++)
+  for(i=0; i<trafficmatrixcapacity; i++)
   {
     MatrixListNode *currentnode = (trafficmatrix.tableentrylists[i].head);
     if(currentnode != NULL)

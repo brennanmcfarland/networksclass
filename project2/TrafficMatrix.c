@@ -164,6 +164,7 @@ void initializeTrafficMatrix()
   trafficmatrix.tableentrylists = trafficMatrixSafeMalloc(DEFAULTTRAFFICMATRIXSIZE*sizeof(MatrixList)*POINTERSIZE);
   //clear the array
   int i;
+  //why is the first value not clearing???
   for(i=0; i<DEFAULTTRAFFICMATRIXSIZE; i++)
   {
     trafficmatrix.tableentrylists[i] = *(MatrixList *)trafficMatrixSafeMalloc(sizeof(MatrixList));
