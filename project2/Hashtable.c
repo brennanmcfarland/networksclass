@@ -66,14 +66,15 @@ void printTable()
   int i;
   for(i=0; i<sizeof(hashtable.tableentrylists); i++)
   {
-    //some of the heads are filled with random data, not cleared
     ListNode *currentnode = (hashtable.tableentrylists[i].head);
-    while(currentnode != EMPTY
-      && currentnode->next != EMPTY)
+    if(currentnode != NULL)
     {
-      printf("%d",currentnode->entry->value);
-      currentnode = currentnode->next;
+      do
+      {
+        printf("%d",currentnode->entry->value);
+      }while((currentnode = currentnode->next) != NULL);
     }
+    printf("\n");
   }
 }
 
@@ -111,43 +112,62 @@ void growTable()
 }
 */
 
+//if found, return pointer to node, if not and list exists, return pointer to
+//last element in list, if list dne, return null
+ListNode *find(int entrysearchkey, int entrysearchvalue)
+{
+  //if the list DNE, it's not there
+  if(hashtable.tableentrylists[entrysearchkey].head == NULL)
+    return NULL;
+  //see if it's in the list
+  ListNode *currentnode = (hashtable.tableentrylists[entrysearchkey].head);
+  while(currentnode->next != NULL && currentnode->entry->value != entrysearchvalue)
+    currentnode = currentnode->next;
+  //if(currentnode->entry->value == entrysearchvalue)
+  //  return currentnode;
+  return currentnode;
+}
+
+void initializeTableList(int listfirstentrykey, int listfirstentryvalue)
+{
+  ListNode **headbuffer = (ListNode **)hashTableSafeMalloc(POINTERSIZE);
+  headbuffer = &(hashtable.tableentrylists[listfirstentrykey].head);
+  initializeNewEntry(listfirstentrykey, listfirstentryvalue, headbuffer);
+}
+
+//it's returning the memory as blank since it's in the function
+void initializeNewEntry(int newentrykey, int newentryvalue, ListNode **newnode)
+{
+  *newnode = (ListNode *)hashTableSafeMalloc(sizeof(ListNode));
+  //IT'S OVERWRITING THE LIST POINTER DATA BEFORE IT WITH THE KEY AND VALUE
+  //changed entry to pointer, but that didn't seem to fix it, investigate
+  (*newnode)->entry = (ListEntry *)hashTableSafeMalloc(sizeof(ListEntry *));
+  *((*newnode)->entry) = *(ListEntry *)hashTableSafeMalloc(sizeof(ListEntry));
+  (*newnode)->entry->key = newentrykey;
+  (*newnode)->entry->value = newentryvalue;
+  (*newnode)->entry->count = 1;
+  (*newnode)->next = EMPTY;
+}
+
 void insert(int newentryvalue)
 {
   int newentrykey = hashCode(newentryvalue)%hashtablecapacity;
   //if it already exists in the list, increment the # occurences, if not create
   //first check if list DNE
-  if(hashtable.tableentrylists[newentrykey].head == EMPTY)
-  {
-    printf("there's no existing list");
-    //make it the first element in the list
-    ListNode newnode = *(ListNode *)hashTableSafeMalloc(sizeof(ListNode));
-    //IT'S OVERWRITING THE LIST POINTER DATA BEFORE IT WITH THE KEY AND VALUE
-    //changed entry to pointer, but that didn't seem to fix it, investigate
-    newnode.entry = (ListEntry *)hashTableSafeMalloc(sizeof(ListEntry));
-    *(newnode.entry) = *(ListEntry *)hashTableSafeMalloc(sizeof(ListEntry));
-    newnode.entry->key = newentrykey;
-    newnode.entry->value = newentryvalue;
-    newnode.next = EMPTY;
-    hashtable.tableentrylists[newentrykey].head = &newnode;
-  }
+  if(hashtable.tableentrylists[newentrykey].head == NULL)
+    initializeTableList(newentrykey, newentryvalue);
   else
   {
-    printf("there's an existing list");
-    //see if it's in the list
+    //see if it's in the list, if so increment value, if not add it
     ListNode *currentnode = (hashtable.tableentrylists[newentrykey].head);
-    while(currentnode != EMPTY && currentnode->next != EMPTY && currentnode->entry->key != newentrykey)
-      currentnode = currentnode->next;
-    if(currentnode->entry->key == newentrykey)
-      //we found it, increment that entry in the list
-      currentnode->entry->value++;
-    else
+    currentnode = find(newentrykey, newentryvalue);
+    if(currentnode != NULL && currentnode->entry->value == newentryvalue)
+      currentnode->entry->count++;
+    else if(currentnode != NULL) //it never gets to this point, why?  find must be coming back as null
     {
-      //it's not there, add it to the list
-      ListNode newnode = *(ListNode *)hashTableSafeMalloc(sizeof(ListNode));
-      newnode.entry->key = newentrykey;
-      newnode.entry->value = newentryvalue;
-      newnode.next = EMPTY;
-      currentnode->next = &newnode;
+      ListNode **currentnodebuffer = (ListNode **)hashTableSafeMalloc(POINTERSIZE);
+      currentnodebuffer = &(currentnode->next);
+      initializeNewEntry(newentrykey, newentryvalue, currentnodebuffer); //if it's null, should already be handled above
     }
   }
 }
@@ -161,17 +181,24 @@ void initializeTable()
 {
   //allocate and clear space for an array of pointers to list heads
   //ListNode temp[DEFAULTTABLESIZE] = hashTableSafeMalloc(sizeof(ListNode)*DEFAULTTABLESIZE*POINTERSIZE);
-  List newhashtablearray[DEFAULTTABLESIZE];
+
+  //List newhashtablearray[DEFAULTTABLESIZE];
+  hashtable.tableentrylists = hashTableSafeMalloc(DEFAULTTABLESIZE*sizeof(List)*POINTERSIZE);
   //clear the array
   int i;
   for(i=0; i<DEFAULTTABLESIZE; i++)
   {
-    List templist = newhashtablearray[i];
-    templist = *(List *)hashTableSafeMalloc(sizeof(List));
-    templist.head = EMPTY;
-    newhashtablearray[i] = templist;
+    //List templist = newhashtablearray[i];
+    //templist = *(List *)hashTableSafeMalloc(sizeof(List));
+    //templist.head = NULL;
+    //newhashtablearray[i] = templist;
+
+    //newhashtablearray[i] = *(List *)hashTableSafeMalloc(sizeof(List));
+    //newhashtablearray[i].head = NULL;
+    hashtable.tableentrylists[i] = *(List *)hashTableSafeMalloc(sizeof(List));
+    hashtable.tableentrylists[i].head = NULL;
   }
-  hashtable.tableentrylists = newhashtablearray;
+  //hashtable.tableentrylists = newhashtablearray;
   hashtablesize = 0;
   hashtablecapacity = DEFAULTTABLESIZE;
 }
@@ -192,12 +219,14 @@ int main()
 {
   initializeTable();
 
+
+
   insert(3);
-  //insert(1);
-  //insert(4);
-  //insert(0);
-  //insert(5);
-  //insert(6); //causing a segfault.  why?
+  insert(1);
+  insert(4);
+  insert(0);
+  insert(5);
+  insert(6);
   printTable();
 
   return 0;
