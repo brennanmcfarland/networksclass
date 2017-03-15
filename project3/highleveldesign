@@ -1,0 +1,14 @@
+struct for meta info
+  2 unsigned longs (sec+msec), 2 unsigned shorts (caplen, ignored)
+
+main loop; for each packet:
+  read 1st 12 bytes of packet into struct
+  numbytescapturedinpacket <- ntohs(caplen(bytes 9-10))
+  numpackets++
+  if first packet in sequence then
+    record time in ?
+  record time as last packet's time in ?
+  read caplen bytes from trace into buffer
+  [will add more later, for now just ignore rest of buffer to get -s working
+  to ensure the base functionality, then add other features on top as
+  specified in the assignment sheet]
