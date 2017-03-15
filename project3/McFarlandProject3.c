@@ -18,6 +18,8 @@
 #include <string.h> //for memset
 #include <arpa/inet.h> //for converting between network and host order
 #include </usr/include/netinet/ip.h> //for the iphdr struct
+#include </usr/include/netinet/udp.h> //for the udphdr struct
+#include </usr/include/netinet/tcp.h> //for the tcphdr struct
 #include "IPHashtable.c"
 #include "TrafficMatrix.c"
 #include "McFarlandProject3.h"
@@ -189,26 +191,24 @@ void analyzePacketTrace()
     //read ethernet header
     int truncatedethheader = analyzePacketEthernetHeader(tracepacketmetainfobuffer);
 
-    //read ip header
-    char *formattedprotocoltype = safeMalloc(sizeof(unsigned short));
-    sprintf(formattedprotocoltype, "0x%02x%02x",
-      (tracepacketethernetheader.eth_protocoltype & PROTOCOLTYPEMSBMASK)/PROTOCOLMASKMSBDIVISOR,
-      (tracepacketethernetheader.eth_protocoltype & PROTOCOLTYPELSBMASK));
-    if((testStringEquality(formattedprotocoltype, "0x0800") == FALSE) && truncatedethheader
-      == FALSE)
+    if(truncatedethheader == FALSE)
     {
-      numnonippackets++;
-      if(flags[FLAG_PRINTPACKETS] == TRUE)
-        printPacketInfo(formatTimeStamp(
-          tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
-          "non-IP", "", INTINITIALIZER, INTINITIALIZER, INTINITIALIZER);
-    }
-    else
-    {
-      analyzePacketIPHeader(truncatedethheader);
-      if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
-        printf("%d",tracepacketipheader.protocol);
-    }
+      //read ip header
+      char *formattedprotocoltype = safeMalloc(sizeof(unsigned short));
+      sprintf(formattedprotocoltype, "0x%02x%02x",
+        (tracepacketethernetheader.eth_protocoltype & PROTOCOLTYPEMSBMASK)/PROTOCOLMASKMSBDIVISOR,
+        (tracepacketethernetheader.eth_protocoltype & PROTOCOLTYPELSBMASK));
+      if(testStringEquality(formattedprotocoltype, "0x0800") == FALSE)
+      {
+        numnonippackets++; //if non-ip, do nothing
+      }
+      else
+      {
+        analyzePacketIPHeader(truncatedethheader);
+        if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
+          printf("%d",tracepacketipheader.protocol);
+      }
+    } //if ethernet header truncated, do nothing
     //read any remaining bits
     safeRead(tracefilestream, safeMalloc(tracepacketmetainfo.meta_caplen),
       tracepacketmetainfo.meta_caplen);
@@ -250,10 +250,6 @@ int analyzePacketEthernetHeader(PacketMetaInfo *tracepacketmetainfo)
     printEthernetHeaderInfo(formatTimeStamp(
       tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
       "Ethernet-truncated", "", INTINITIALIZER);*/
-  if(flags[FLAG_PRINTPACKETS] == TRUE)
-    printPacketInfo(formatTimeStamp(
-      tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
-      "unknown", "", INTINITIALIZER, INTINITIALIZER, INTINITIALIZER);
   return TRUE;
 }
 
@@ -267,11 +263,7 @@ void analyzePacketIPHeader(int truncatedethhdr)
     tracepacketmetainfo.meta_caplen -= sizeof(struct iphdr);
     if(tracepacketmetainfo.meta_caplen+sizeof(struct iphdr) < tracepacketipheader.ihl*WORDSIZE)
     {
-      ip_numpartialheaders++;
-      if(flags[FLAG_PRINTPACKETS] == TRUE)
-        printPacketInfo(formatTimeStamp(
-          tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
-          "IP-truncated", "", INTINITIALIZER, INTINITIALIZER, INTINITIALIZER);
+      ip_numpartialheaders++; //if partial ip header, do nothing
       return;
     }
     ip_numfullheaders++;
@@ -301,11 +293,7 @@ void analyzePacketIPHeader(int truncatedethhdr)
   {
     if(truncatedethhdr == FALSE)
     {
-      ip_numpartialheaders++;
-      if(flags[FLAG_PRINTPACKETS] == TRUE)
-        printPacketInfo(formatTimeStamp(
-          tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
-          "IP-truncated", "", INTINITIALIZER, INTINITIALIZER, INTINITIALIZER);
+      ip_numpartialheaders++; //if partial ip header, do nothing
     }
   }
 }
