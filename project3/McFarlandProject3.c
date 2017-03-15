@@ -36,7 +36,10 @@ PacketEthernetHeader tracepacketethernetheader;
 PacketEthernetHeader *tracepacketethernetheaderbuffer = &tracepacketethernetheader;
 struct iphdr tracepacketipheader;
 struct iphdr *tracepacketipheaderbuffer = &tracepacketipheader;
-struct iphdr tracepacketipheader;
+struct tcphdr tracepackettcpheader;
+struct tcphdr *tracepackettcpheaderbuffer = &tracepackettcpheader;
+struct udphdr tracepacketudpheader;
+struct udphdr *tracepacketudpheaderbuffer = &tracepacketudpheader;
 
 //vars for aggregate data
 int numpackets = INTINITIALIZER;
@@ -204,9 +207,14 @@ void analyzePacketTrace()
       }
       else
       {
-        analyzePacketIPHeader(truncatedethheader);
+        int truncatedipheader = analyzePacketIPHeader(truncatedethheader);
         if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
           printf("%d",tracepacketipheader.protocol);
+        if(truncatedipheader == FALSE)
+        {
+          //if the ip header is
+          analyzeTransportHeader();
+        }
       }
     } //if ethernet header truncated, do nothing
     //read any remaining bits
@@ -253,8 +261,8 @@ int analyzePacketEthernetHeader(PacketMetaInfo *tracepacketmetainfo)
   return TRUE;
 }
 
-//analyze a single ip packet header
-void analyzePacketIPHeader(int truncatedethhdr)
+//analyze a single ip packet header, FALSE if not truncated/successful
+int analyzePacketIPHeader(int truncatedethhdr)
 {
   if(tracepacketmetainfo.meta_caplen >= sizeof(struct iphdr))
   {
@@ -264,7 +272,7 @@ void analyzePacketIPHeader(int truncatedethhdr)
     if(tracepacketmetainfo.meta_caplen+sizeof(struct iphdr) < tracepacketipheader.ihl*WORDSIZE)
     {
       ip_numpartialheaders++; //if partial ip header, do nothing
-      return;
+      return TRUE;
     }
     ip_numfullheaders++;
     if(tracepacketipheader.protocol == TCPPROTOCOLNUM)
@@ -294,8 +302,32 @@ void analyzePacketIPHeader(int truncatedethhdr)
     if(truncatedethhdr == FALSE)
     {
       ip_numpartialheaders++; //if partial ip header, do nothing
+      return TRUE;
     }
   }
+  return FALSE;
+}
+
+//analyze the transport layer header, tcp or udp (or neither)
+void analyzeTransportHeader()
+{
+  if(tracepacketipheader.protocol == TCPPROTOCOLNUM)
+    analyzePacketTCPHeader();
+  else if(tracepacketipheader.protocol == UDPPROTOCOLNUM)
+    analyzePacketUDPHeader();
+  //if neither, do nothing
+}
+
+//analyze a single packet tcp header
+void analyzePacketTCPHeader()
+{
+  //TODO: make sure to ignore packet if not containing full tcp header (variable length)
+}
+
+//analyze a single packet udp header
+void analyzePacketUDPHeader()
+{
+  //TODO: make sure to ignore packet if not containing full udp header
 }
 
 //converts data in packetmetainfo to host order
