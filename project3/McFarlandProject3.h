@@ -10,12 +10,10 @@
 
 #define NUMFLAGS 7
 #define FLAG_TRACEFILENAME 0
-#define FLAG_PRINTTRACESUMMARY 1
-#define FLAG_PRINTETHERNETHEADERS 2
-#define FLAG_PRINTIPHEADERS 3
-#define FLAG_PRINTPACKETTYPES 4
-#define FLAG_PRINTTRAFFICMATRIX 5
-#define FLAG_VERBOSEOUTPUT 6
+#define FLAG_PRINTPACKETS 1
+#define FLAG_PRINTCONNECTIONSUMMARIES 2
+#define FLAG_PRINTROUNDTRIPTIMES 3
+#define FLAG_VERBOSEOUTPUT 4
 
 #define MACADDRESSSIZE 6
 #define IPADDRESSSIZE 4
@@ -55,7 +53,7 @@ typedef struct PacketEthernetHeader
 void printTraceSummary();
 void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destinationaddress,
   unsigned short protocoltype);
-void printIPHeaderInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
+void printPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   char destinationaddress[IPADDRESSSIZE], unsigned int ihl, u_int8_t protocol, u_int8_t ttl);
 void printPacketTypes();
 void printTrafficMatrix();

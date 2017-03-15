@@ -20,7 +20,7 @@
 #include </usr/include/netinet/ip.h> //for the iphdr struct
 #include "IPHashtable.c"
 #include "TrafficMatrix.c"
-#include "McFarlandProject2.h"
+#include "McFarlandProject3.h"
 
 
 //vars for operations
@@ -80,8 +80,8 @@ void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destin
   }
 }
 
-//prints ip header info
-void printIPHeaderInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
+//prints packet information, including ips, ports, and protocol info
+void printPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   char destinationaddress[IPADDRESSSIZE], unsigned int ihl, u_int8_t protocol, u_int8_t ttl)
 {
   char *truncatedipheadermessage = "IP-truncated";
@@ -106,7 +106,7 @@ void printIPHeaderInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
     printf(" ");
     printIPAddress(destinationaddress);
     printf(" ");
-    printf("%u %d %d\n", ihl*WORDSIZE, protocol, ttl);
+    //printf("%u %d %d\n", ihl*WORDSIZE, protocol, ttl);
   }
 }
 
@@ -198,8 +198,8 @@ void analyzePacketTrace()
       == FALSE)
     {
       numnonippackets++;
-      if(flags[FLAG_PRINTIPHEADERS] == TRUE)
-        printIPHeaderInfo(formatTimeStamp(
+      if(flags[FLAG_PRINTPACKETS] == TRUE)
+        printPacketInfo(formatTimeStamp(
           tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
           "non-IP", "", INTINITIALIZER, INTINITIALIZER, INTINITIALIZER);
     }
@@ -220,12 +220,12 @@ void analyzePacketTrace()
   if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
     printf("Reached end of file.\n");
 
-  if(flags[FLAG_PRINTTRACESUMMARY] == TRUE)
-    printTraceSummary();
-  if(flags[FLAG_PRINTPACKETTYPES] == TRUE)
-    printPacketTypes();
-  if(flags[FLAG_PRINTTRAFFICMATRIX] == TRUE)
-    printTrafficMatrix();
+  /*if(flags[FLAG_PRINTTRACESUMMARY] == TRUE)
+    printTraceSummary();*/
+  /*if(flags[FLAG_PRINTPACKETTYPES] == TRUE)
+    printPacketTypes();*/
+  /*if(flags[FLAG_PRINTTRAFFICMATRIX] == TRUE)
+    printTrafficMatrix();*/
 }
 
 //analyze a single ethernet packet header, FALSE if not truncated/successful
@@ -237,21 +237,21 @@ int analyzePacketEthernetHeader(PacketMetaInfo *tracepacketmetainfo)
       sizeof(PacketEthernetHeader));
     tracepacketmetainfo->meta_caplen -= sizeof(PacketEthernetHeader);
     packetEthernetHeaderToHostOrder(tracepacketethernetheaderbuffer);
-    if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE)
+    /*if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE)
       printEthernetHeaderInfo(formatTimeStamp(
         tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
         tracepacketethernetheader.eth_srcaddress, tracepacketethernetheader.eth_destaddress,
-        tracepacketethernetheader.eth_protocoltype);
+        tracepacketethernetheader.eth_protocoltype);*/
     eth_numfullpackets++;
     return FALSE;
   }
   eth_numpartialpackets++;
-  if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE)
+  /*if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE)
     printEthernetHeaderInfo(formatTimeStamp(
       tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
-      "Ethernet-truncated", "", INTINITIALIZER);
-  if(flags[FLAG_PRINTIPHEADERS] == TRUE)
-    printIPHeaderInfo(formatTimeStamp(
+      "Ethernet-truncated", "", INTINITIALIZER);*/
+  if(flags[FLAG_PRINTPACKETS] == TRUE)
+    printPacketInfo(formatTimeStamp(
       tracepacketmetainfo->meta_secsinceepoch, tracepacketmetainfo->meta_msecsincesec),
       "unknown", "", INTINITIALIZER, INTINITIALIZER, INTINITIALIZER);
   return TRUE;
@@ -268,8 +268,8 @@ void analyzePacketIPHeader(int truncatedethhdr)
     if(tracepacketmetainfo.meta_caplen+sizeof(struct iphdr) < tracepacketipheader.ihl*WORDSIZE)
     {
       ip_numpartialheaders++;
-      if(flags[FLAG_PRINTIPHEADERS] == TRUE)
-        printIPHeaderInfo(formatTimeStamp(
+      if(flags[FLAG_PRINTPACKETS] == TRUE)
+        printPacketInfo(formatTimeStamp(
           tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
           "IP-truncated", "", INTINITIALIZER, INTINITIALIZER, INTINITIALIZER);
       return;
@@ -288,9 +288,9 @@ void analyzePacketIPHeader(int truncatedethhdr)
     char **tracepacketipheaderdestaddressbuffer = &tracepacketipheaderdestaddress;
       insertInTrafficMatrix(tracepacketipheadersourceaddressbuffer,
         tracepacketipheaderdestaddressbuffer, tracepacketipheader.tot_len);
-    if(flags[FLAG_PRINTIPHEADERS] == TRUE)
+    if(flags[FLAG_PRINTPACKETS] == TRUE)
     {
-      printIPHeaderInfo(formatTimeStamp(
+      printPacketInfo(formatTimeStamp(
         tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
         tracepacketipheadersourceaddress, tracepacketipheaderdestaddress,
         tracepacketipheader.ihl, tracepacketipheader.protocol,
@@ -302,8 +302,8 @@ void analyzePacketIPHeader(int truncatedethhdr)
     if(truncatedethhdr == FALSE)
     {
       ip_numpartialheaders++;
-      if(flags[FLAG_PRINTIPHEADERS] == TRUE)
-        printIPHeaderInfo(formatTimeStamp(
+      if(flags[FLAG_PRINTPACKETS] == TRUE)
+        printPacketInfo(formatTimeStamp(
           tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
           "IP-truncated", "", INTINITIALIZER, INTINITIALIZER, INTINITIALIZER);
     }
@@ -391,7 +391,7 @@ void parseInput(int argc, char *argv[], char **tracefilename)
     flags[i] = FALSE;
   int input;
   //read input args into variables
-  while((input = getopt(argc, argv, "seitmvr:")) != FINISHED)
+  while((input = getopt(argc, argv, "pstvr:")) != FINISHED)
   {
     int prevtracefilenameset = flags[FLAG_TRACEFILENAME];
     char *option = parseInputArg(input);
@@ -418,20 +418,14 @@ char *parseInputArg(int inputargtoparse)
 {
     switch(inputargtoparse)
     {
+    case 'p':
+      flags[FLAG_PRINTPACKETS] = TRUE;
+      break;
     case 's':
-      flags[FLAG_PRINTTRACESUMMARY] = TRUE;
-      break;
-    case 'e':
-      flags[FLAG_PRINTETHERNETHEADERS] = TRUE;
-      break;
-    case 'i':
-      flags[FLAG_PRINTIPHEADERS] = TRUE;
+      flags[FLAG_PRINTCONNECTIONSUMMARIES] = TRUE;
       break;
     case 't':
-      flags[FLAG_PRINTPACKETTYPES] = TRUE;
-      break;
-    case 'm':
-      flags[FLAG_PRINTTRAFFICMATRIX] = TRUE;
+      flags[FLAG_PRINTROUNDTRIPTIMES] = TRUE;
       break;
     case 'v':
       flags[FLAG_VERBOSEOUTPUT] = TRUE;
@@ -497,9 +491,8 @@ int main(int argc, char *argv[])
 
   parseInput(argc, argv, &tracefilename);
 
-  if(flags[FLAG_PRINTTRACESUMMARY]+flags[FLAG_PRINTETHERNETHEADERS]+
-    flags[FLAG_PRINTIPHEADERS]+flags[FLAG_PRINTPACKETTYPES]+
-    flags[FLAG_PRINTTRAFFICMATRIX] != SINGLEARGCHECK)
+  if(flags[FLAG_PRINTPACKETS]+flags[FLAG_PRINTCONNECTIONSUMMARIES]+
+    flags[FLAG_PRINTROUNDTRIPTIMES] != SINGLEARGCHECK)
   {
     printf("Error: must specify one and only one option!\n");
     return EXIT_ERRORCODE;
