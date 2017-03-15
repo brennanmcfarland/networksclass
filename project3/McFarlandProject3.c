@@ -275,10 +275,6 @@ int analyzePacketIPHeader(int truncatedethhdr)
       return TRUE;
     }
     ip_numfullheaders++;
-    if(tracepacketipheader.protocol == TCPPROTOCOLNUM)
-      ip_numtcppackets++;
-    if(tracepacketipheader.protocol == UDPPROTOCOLNUM)
-      ip_numupdpackets++;
     insertSourceIP(tracepacketipheader.saddr);
     insertDestIP(tracepacketipheader.daddr);
     char *tracepacketipheadersourceaddress = formatIPAddress(tracepacketipheader.saddr);
@@ -322,12 +318,28 @@ void analyzeTransportHeader()
 void analyzePacketTCPHeader()
 {
   //TODO: make sure to ignore packet if not containing full tcp header (variable length)
+  /*if(tracepacketmetainfo.meta_caplen >= sizeof(struct tcphdr))
+  {
+    safeRead(tracefilestream, (void *)tracepackettcpheaderbuffer, sizeof(struct tcphdr));
+    iphdrToHostOrder(tracepackettcpheaderbuffer);
+    tracepacketmetainfo.meta_caplen -= sizeof(struct tcphdr);
+    if(tracepacketmetainfo.meta_caplen+sizeof(struct tcphdr) < tracepackettcpheader.ihl*WORDSIZE)
+    {
+      ip_numpartialheaders++; //if partial ip header, do nothing
+      return TRUE;
+    }
+    ip_numfullheaders++;
+  }*/
 }
 
 //analyze a single packet udp header
 void analyzePacketUDPHeader()
 {
   //TODO: make sure to ignore packet if not containing full udp header
+  if(tracepacketmetainfo.meta_caplen >= sizeof(struct udphdr))
+  {
+      ip_numupdpackets++;
+  } //if truncated udp header, do nothing
 }
 
 //converts data in packetmetainfo to host order
