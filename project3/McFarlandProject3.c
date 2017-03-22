@@ -12,6 +12,12 @@
   -m prints traffic matrix
 */
 
+/*
+  TODO: timestamps are coming out wrong for sample-B on this and the project2
+  version, why???
+  caplen appears to only be the length of the ethernet and ip headers combined,
+  what about tcp/udp headers?
+*/
 #include <unistd.h> //for getopt and file operations
 #include <stdlib.h>
 #include <stdio.h> //for file operations
@@ -40,6 +46,12 @@ struct tcphdr tracepackettcpheader;
 struct tcphdr *tracepackettcpheaderbuffer = &tracepackettcpheader;
 struct udphdr tracepacketudpheader;
 struct udphdr *tracepacketudpheaderbuffer = &tracepacketudpheader;
+
+//vars for temporary storage for individual PACKETS
+char *tracepacketipheadersourceaddress;
+char **tracepacketipheadersourceaddressbuffer = &tracepacketipheadersourceaddress;
+char *tracepacketipheaderdestaddress;
+char **tracepacketipheaderdestaddressbuffer = &tracepacketipheaderdestaddress;
 
 //vars for aggregate data
 int numpackets = INTINITIALIZER;
@@ -110,8 +122,10 @@ void printPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
     printIPAddress(sourceaddress);
     printf(" ");
     printIPAddress(destinationaddress);
-    printf(" ");
+    printf(" %u ", tracepackettcpheader.seq);
+    printf("%u ", tracepackettcpheader.ack_seq);
     //printf("%u %d %d\n", ihl*WORDSIZE, protocol, ttl);
+    printf("\n");
   }
 }
 
@@ -207,7 +221,7 @@ void analyzePacketTrace()
       }
       else
       {
-        int truncatedipheader = analyzePacketIPHeader(truncatedethheader);
+        int truncatedipheader = analyzePacketIPHeader(truncatedethheader); //NOTE:here's where it's being set to 0
         if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
           printf("%d",tracepacketipheader.protocol);
         if(truncatedipheader == FALSE)
@@ -277,21 +291,11 @@ int analyzePacketIPHeader(int truncatedethhdr)
     ip_numfullheaders++;
     insertSourceIP(tracepacketipheader.saddr);
     insertDestIP(tracepacketipheader.daddr);
-    char *tracepacketipheadersourceaddress = formatIPAddress(tracepacketipheader.saddr);
-    char **tracepacketipheadersourceaddressbuffer = &tracepacketipheadersourceaddress;
-    char *tracepacketipheaderdestaddress = formatIPAddress(tracepacketipheader.daddr);
+    tracepacketipheadersourceaddress = formatIPAddress(tracepacketipheader.saddr);
+    tracepacketipheaderdestaddress = formatIPAddress(tracepacketipheader.daddr);
     //assuming traffic matrix only counts values with full ip header
-    char **tracepacketipheaderdestaddressbuffer = &tracepacketipheaderdestaddress;
-      insertInTrafficMatrix(tracepacketipheadersourceaddressbuffer,
-        tracepacketipheaderdestaddressbuffer, tracepacketipheader.tot_len);
-    if(flags[FLAG_PRINTPACKETS] == TRUE)
-    {
-      printPacketInfo(formatTimeStamp(
-        tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
-        tracepacketipheadersourceaddress, tracepacketipheaderdestaddress,
-        tracepacketipheader.ihl, tracepacketipheader.protocol,
-        tracepacketipheader.ttl);
-    }
+    //  insertInTrafficMatrix(tracepacketipheadersourceaddressbuffer,
+    //    tracepacketipheaderdestaddressbuffer, tracepacketipheader.tot_len);
   }
   else
   {
@@ -317,19 +321,26 @@ void analyzeTransportHeader()
 //analyze a single packet tcp header
 void analyzePacketTCPHeader()
 {
-  //TODO: make sure to ignore packet if not containing full tcp header (variable length)
-  /*if(tracepacketmetainfo.meta_caplen >= sizeof(struct tcphdr))
+  if(tracepacketmetainfo.meta_caplen >= sizeof(struct tcphdr))
   {
     safeRead(tracefilestream, (void *)tracepackettcpheaderbuffer, sizeof(struct tcphdr));
-    iphdrToHostOrder(tracepackettcpheaderbuffer);
+    tcphdrToHostOrder(tracepackettcpheaderbuffer);
     tracepacketmetainfo.meta_caplen -= sizeof(struct tcphdr);
-    if(tracepacketmetainfo.meta_caplen+sizeof(struct tcphdr) < tracepackettcpheader.ihl*WORDSIZE)
+    if(tracepacketmetainfo.meta_caplen+sizeof(struct tcphdr) < tracepackettcpheader.th_off*WORDSIZE)
     {
       ip_numpartialheaders++; //if partial ip header, do nothing
-      return TRUE;
+      return;
     }
     ip_numfullheaders++;
-  }*/
+    if(flags[FLAG_PRINTPACKETS] == TRUE)
+    {
+      printPacketInfo(formatTimeStamp(
+        tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
+        tracepacketipheadersourceaddress, tracepacketipheaderdestaddress,
+        tracepacketipheader.ihl, tracepacketipheader.protocol,
+        tracepacketipheader.ttl);
+    }
+  }
 }
 
 //analyze a single packet udp header
@@ -367,6 +378,16 @@ void iphdrToHostOrder(struct iphdr * packetipheader)
   packetipheader->check = ntohs(packetipheader->check);
   packetipheader->saddr = ntohl(packetipheader->saddr);
   packetipheader->daddr = ntohl(packetipheader->daddr);
+}
+
+//converts data in tcphdr to host order
+void tcphdrToHostOrder(struct tcphdr *packettcpheader)
+{
+  packettcpheader->th_sport = ntohl(packettcpheader->th_sport);
+  packettcpheader->th_dport = ntohl(packettcpheader->th_dport);
+  packettcpheader->th_off = ntohs(packettcpheader->th_off);
+  packettcpheader->seq = ntohl(packettcpheader->seq);
+  packettcpheader->ack_seq = ntohl(packettcpheader->ack_seq);
 }
 
 //returns whether 2 strings are equal

@@ -159,6 +159,7 @@ void analyzePacketUDPHeader();
 void packetMetaInfoToHostOrder(PacketMetaInfo * packetmetainfo);
 void packetEthernetHeaderToHostOrder(PacketEthernetHeader * packetethernetheader);
 void iphdrToHostOrder(struct iphdr * packetipheader);
+void tcphdrToHostOrder(struct tcphdr *packettcpheader);
 int testStringEquality(char *string1, char *string2);
 char *formatIPAddress(u_int32_t ipaddressint);
 double formatTimeStamp(int secsinceepoch, int msecsinsec);
