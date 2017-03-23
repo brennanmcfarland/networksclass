@@ -120,9 +120,10 @@ void printPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   {
     printf("%.6f ", timestamp);
     printIPAddress(sourceaddress);
-    printf(" ");
+    printf(" %u ", tracepackettcpheader.th_sport);
     printIPAddress(destinationaddress);
-    printf(" %u ", tracepackettcpheader.seq);
+    printf(" %u ", tracepackettcpheader.th_dport);
+    printf("%u ", tracepackettcpheader.seq);
     printf("%u ", tracepackettcpheader.ack_seq);
     //printf("%u %d %d\n", ihl*WORDSIZE, protocol, ttl);
     printf("\n");
@@ -383,8 +384,8 @@ void iphdrToHostOrder(struct iphdr * packetipheader)
 //converts data in tcphdr to host order
 void tcphdrToHostOrder(struct tcphdr *packettcpheader)
 {
-  packettcpheader->th_sport = ntohl(packettcpheader->th_sport);
-  packettcpheader->th_dport = ntohl(packettcpheader->th_dport);
+  packettcpheader->th_sport = ntohs(packettcpheader->th_sport);
+  packettcpheader->th_dport = ntohs(packettcpheader->th_dport);
   packettcpheader->th_off = ntohs(packettcpheader->th_off);
   packettcpheader->seq = ntohl(packettcpheader->seq);
   packettcpheader->ack_seq = ntohl(packettcpheader->ack_seq);
