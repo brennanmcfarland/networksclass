@@ -22,6 +22,10 @@
 #include "TrafficMatrix.c"
 #include "McFarlandProject2.h"
 
+/*
+  TODO: 
+
+*/
 
 //vars for operations
 FILE *tracefilestream;
