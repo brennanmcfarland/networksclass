@@ -64,6 +64,8 @@ int ip_numfullheaders = INTINITIALIZER;
 int ip_numpartialheaders = INTINITIALIZER;
 int ip_numtcppackets = INTINITIALIZER;
 int ip_numupdpackets = INTINITIALIZER;
+int tcp_numfullheaders = INTINITIALIZER;
+int tcp_numpartialheaders = INTINITIALIZER;
 
 
 //prints packet trace summary
@@ -99,7 +101,8 @@ void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destin
 
 //prints packet information, including ips, ports, and protocol info
 void printPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
-  char destinationaddress[IPADDRESSSIZE], unsigned int ihl, u_int8_t protocol, u_int8_t ttl)
+  char destinationaddress[IPADDRESSSIZE], unsigned int ihl, u_int8_t protocol,
+  u_int8_t ttl, int isTCP)
 {
   char *truncatedipheadermessage = "IP-truncated";
   char *nonipheadermessage = "non-IP";
@@ -123,6 +126,10 @@ void printPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
     printf(" %u ", tracepackettcpheader.th_sport);
     printIPAddress(destinationaddress);
     printf(" %u ", tracepackettcpheader.th_dport);
+    if(isTCP == TRUE)
+      printf(" T ");
+    else
+      printf(" U ");
     printf("%u ", tracepackettcpheader.seq);
     printf("%u ", tracepackettcpheader.ack_seq);
     //printf("%u %d %d\n", ihl*WORDSIZE, protocol, ttl);
@@ -329,17 +336,19 @@ void analyzePacketTCPHeader()
     tracepacketmetainfo.meta_caplen -= sizeof(struct tcphdr);
     if(tracepacketmetainfo.meta_caplen+sizeof(struct tcphdr) < tracepackettcpheader.th_off*WORDSIZE)
     {
-      ip_numpartialheaders++; //if partial ip header, do nothing
+      tcp_numpartialheaders++; //if partial ip header, do nothing
       return;
     }
-    ip_numfullheaders++;
+    printf("|%lu|", tracepacketipheader.tot_len-tracepacketipheader.ihl*WORDSIZE
+      -sizeof(struct tcphdr)-tracepackettcpheader.off*WORDSIZE);
+    tcp_numfullheaders++;
     if(flags[FLAG_PRINTPACKETS] == TRUE)
     {
       printPacketInfo(formatTimeStamp(
         tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
         tracepacketipheadersourceaddress, tracepacketipheaderdestaddress,
         tracepacketipheader.ihl, tracepacketipheader.protocol,
-        tracepacketipheader.ttl);
+        tracepacketipheader.ttl, TRUE);
     }
   }
 }

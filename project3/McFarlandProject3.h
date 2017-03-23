@@ -145,7 +145,8 @@ void printTraceSummary();
 void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destinationaddress,
   unsigned short protocoltype);
 void printPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
-  char destinationaddress[IPADDRESSSIZE], unsigned int ihl, u_int8_t protocol, u_int8_t ttl);
+  char destinationaddress[IPADDRESSSIZE], unsigned int ihl, u_int8_t protocol,
+  u_int8_t ttl, int isTCP);
 void printPacketTypes();
 void printTrafficMatrix();
 void printMACAddress(char *macaddress);
