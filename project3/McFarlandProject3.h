@@ -147,6 +147,10 @@ void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destin
 void printPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   char destinationaddress[IPADDRESSSIZE], unsigned int ihl, u_int8_t protocol,
   u_int8_t ttl, int isTCP);
+void printTCPPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
+  char destinationaddress[IPADDRESSSIZE]);
+void printUDPPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
+  char destinationaddress[IPADDRESSSIZE]);
 void printPacketTypes();
 void printTrafficMatrix();
 void printMACAddress(char *macaddress);
@@ -161,6 +165,7 @@ void packetMetaInfoToHostOrder(PacketMetaInfo * packetmetainfo);
 void packetEthernetHeaderToHostOrder(PacketEthernetHeader * packetethernetheader);
 void iphdrToHostOrder(struct iphdr * packetipheader);
 void tcphdrToHostOrder(struct tcphdr *packettcpheader);
+void udphdrToHostOrder(struct udphdr *packetudpheader);
 int testStringEquality(char *string1, char *string2);
 char *formatIPAddress(u_int32_t ipaddressint);
 double formatTimeStamp(int secsinceepoch, int msecsinsec);

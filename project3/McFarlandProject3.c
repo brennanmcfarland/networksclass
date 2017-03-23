@@ -13,8 +13,6 @@
 */
 
 /*
-  TODO: timestamps are coming out wrong for sample-B on this and the project2
-  version, why???
   caplen appears to only be the length of the ethernet and ip headers combined,
   what about tcp/udp headers?
 */
@@ -66,6 +64,8 @@ int ip_numtcppackets = INTINITIALIZER;
 int ip_numupdpackets = INTINITIALIZER;
 int tcp_numfullheaders = INTINITIALIZER;
 int tcp_numpartialheaders = INTINITIALIZER;
+int udp_numfullheaders = INTINITIALIZER;
+int udp_numpartialheaders = INTINITIALIZER;
 
 
 //prints packet trace summary
@@ -121,20 +121,41 @@ void printPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   }
   else
   {
-    printf("%.6f ", timestamp);
-    printIPAddress(sourceaddress);
-    printf(" %u ", tracepackettcpheader.th_sport);
-    printIPAddress(destinationaddress);
-    printf(" %u ", tracepackettcpheader.th_dport);
     if(isTCP == TRUE)
-      printf(" T ");
+      printTCPPacketInfo(timestamp, sourceaddress, destinationaddress);
     else
-      printf(" U ");
-    printf("%u ", tracepackettcpheader.seq);
-    printf("%u ", tracepackettcpheader.ack_seq);
-    //printf("%u %d %d\n", ihl*WORDSIZE, protocol, ttl);
-    printf("\n");
+      printUDPPacketInfo(timestamp, sourceaddress, destinationaddress);
   }
+}
+
+//prints packet information for a valid tcp packet
+void printTCPPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
+  char destinationaddress[IPADDRESSSIZE])
+{
+  printf("%.6f ", timestamp);
+  printIPAddress(sourceaddress);
+  printf(" %u ", tracepackettcpheader.th_sport);
+  printIPAddress(destinationaddress);
+  printf(" %u ", tracepackettcpheader.th_dport);
+  printf(" T ");
+  printf("%u ", tracepackettcpheader.seq);
+  printf("%u", tracepackettcpheader.ack_seq);
+  //printf("%u %d %d\n", ihl*WORDSIZE, protocol, ttl);
+  printf("\n");
+}
+
+//prints packet information for a valid udp packet
+void printUDPPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
+  char destinationaddress[IPADDRESSSIZE])
+{
+  printf("%.6f ", timestamp);
+  printIPAddress(sourceaddress);
+  printf(" %u ", tracepacketudpheader.source);
+  printIPAddress(destinationaddress);
+  printf(" %u ", tracepacketudpheader.dest);
+  printf(" U ");
+  printf("%lu", tracepacketudpheader.len-sizeof(struct udphdr));
+  printf("\n");
 }
 
 void printPacketTypes()
@@ -290,12 +311,13 @@ int analyzePacketIPHeader(int truncatedethhdr)
   {
     safeRead(tracefilestream, (void *)tracepacketipheaderbuffer, sizeof(struct iphdr));
     iphdrToHostOrder(tracepacketipheaderbuffer);
-    tracepacketmetainfo.meta_caplen -= sizeof(struct iphdr);
-    if(tracepacketmetainfo.meta_caplen+sizeof(struct iphdr) < tracepacketipheader.ihl*WORDSIZE)
+    //tracepacketmetainfo.meta_caplen -= sizeof(struct iphdr);
+    if(tracepacketmetainfo.meta_caplen < tracepacketipheader.ihl*WORDSIZE)
     {
       ip_numpartialheaders++; //if partial ip header, do nothing
       return TRUE;
     }
+    tracepacketmetainfo.meta_caplen -= tracepacketipheader.ihl*WORDSIZE;
     ip_numfullheaders++;
     insertSourceIP(tracepacketipheader.saddr);
     insertDestIP(tracepacketipheader.daddr);
@@ -336,11 +358,12 @@ void analyzePacketTCPHeader()
     tracepacketmetainfo.meta_caplen -= sizeof(struct tcphdr);
     if(tracepacketmetainfo.meta_caplen+sizeof(struct tcphdr) < tracepackettcpheader.th_off*WORDSIZE)
     {
-      tcp_numpartialheaders++; //if partial ip header, do nothing
+      tcp_numpartialheaders++; //if partial tcp header, do nothing
       return;
     }
-    printf("|%lu|", tracepacketipheader.tot_len-tracepacketipheader.ihl*WORDSIZE
-      -sizeof(struct tcphdr)-tracepackettcpheader.off*WORDSIZE);
+    printf("|%lu|", tracepacketipheader.tot_len-sizeof(struct iphdr)
+      -tracepacketipheader.ihl*WORDSIZE);
+      //-sizeof(struct tcphdr)-tracepackettcpheader.th_off*WORDSIZE);
     tcp_numfullheaders++;
     if(flags[FLAG_PRINTPACKETS] == TRUE)
     {
@@ -351,16 +374,29 @@ void analyzePacketTCPHeader()
         tracepacketipheader.ttl, TRUE);
     }
   }
+  tcp_numpartialheaders++;
 }
 
 //analyze a single packet udp header
 void analyzePacketUDPHeader()
 {
-  //TODO: make sure to ignore packet if not containing full udp header
+  //udp header size is fixed, so only need to check if sizeof struct
   if(tracepacketmetainfo.meta_caplen >= sizeof(struct udphdr))
   {
-      ip_numupdpackets++;
-  } //if truncated udp header, do nothing
+    safeRead(tracefilestream, (void *)tracepacketudpheaderbuffer, sizeof(struct udphdr));
+    udphdrToHostOrder(tracepacketudpheaderbuffer);
+    tracepacketmetainfo.meta_caplen -= sizeof(struct udphdr);
+    udp_numfullheaders++;
+    if(flags[FLAG_PRINTPACKETS] == TRUE)
+    {
+      printPacketInfo(formatTimeStamp(
+        tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
+        tracepacketipheadersourceaddress, tracepacketipheaderdestaddress,
+        tracepacketipheader.ihl, tracepacketipheader.protocol,
+        tracepacketipheader.ttl, FALSE);
+    }
+  }
+  udp_numpartialheaders++;
 }
 
 //converts data in packetmetainfo to host order
@@ -398,6 +434,14 @@ void tcphdrToHostOrder(struct tcphdr *packettcpheader)
   packettcpheader->th_off = ntohs(packettcpheader->th_off);
   packettcpheader->seq = ntohl(packettcpheader->seq);
   packettcpheader->ack_seq = ntohl(packettcpheader->ack_seq);
+}
+
+//converts data in udphdr to host order
+void udphdrToHostOrder(struct udphdr *packetudpheader)
+{
+  packetudpheader->uh_ulen = ntohs(packetudpheader->len);
+  packetudpheader->source = ntohs(packetudpheader->source);
+  packetudpheader->dest = ntohs(packetudpheader->dest);
 }
 
 //returns whether 2 strings are equal
