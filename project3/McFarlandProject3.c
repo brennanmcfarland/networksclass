@@ -25,7 +25,7 @@
 #include </usr/include/netinet/udp.h> //for the udphdr struct
 #include </usr/include/netinet/tcp.h> //for the tcphdr struct
 #include "IPHashtable.c"
-#include "TrafficMatrix.c"
+#include "ConnectionHashtable.c"
 #include "McFarlandProject3.h"
 
 
@@ -170,19 +170,19 @@ void printPacketTypes()
 }
 
 //walks and prints a formatted representation of the traffic matrix
-void printTrafficMatrix()
+void printConnectionHashtable()
 {
   int i;
-  for(i=INTINITIALIZER; i<trafficmatrixcapacity; i++)
+  for(i=INTINITIALIZER; i<connectionhashtablecapacity; i++)
   {
-    MatrixListNode *currentnode = (trafficmatrix.tableentrylists[i].head);
+    ConnectionHashtableListNode *currentnode = (connectionhashtable.tableentrylists[i].head);
     if(currentnode != NULL)
     {
       do
       {
-        printIPAddress(currentnode->entry->sourceaddressvalue);
+        printIPAddress(currentnode->entry->orig_key);
         printf(" ");
-        printIPAddress(currentnode->entry->destinationaddressvalue);
+        printIPAddress(currentnode->entry->resp_key);
         printf(" %d ", currentnode->entry->count);
         printf("%d", currentnode->entry->datavol);
         printf("\n");
@@ -276,7 +276,7 @@ void analyzePacketTrace()
   /*if(flags[FLAG_PRINTPACKETTYPES] == TRUE)
     printPacketTypes();*/
   /*if(flags[FLAG_PRINTTRAFFICMATRIX] == TRUE)
-    printTrafficMatrix();*/
+    printConnectionHashtable();*/
 }
 
 //analyze a single ethernet packet header, FALSE if not truncated/successful
@@ -324,7 +324,7 @@ int analyzePacketIPHeader(int truncatedethhdr)
     tracepacketipheadersourceaddress = formatIPAddress(tracepacketipheader.saddr);
     tracepacketipheaderdestaddress = formatIPAddress(tracepacketipheader.daddr);
     //assuming traffic matrix only counts values with full ip header
-    //  insertInTrafficMatrix(tracepacketipheadersourceaddressbuffer,
+    //  insertInConnectionHashtable(tracepacketipheadersourceaddressbuffer,
     //    tracepacketipheaderdestaddressbuffer, tracepacketipheader.tot_len);
   }
   else
@@ -361,9 +361,9 @@ void analyzePacketTCPHeader()
       tcp_numpartialheaders++; //if partial tcp header, do nothing
       return;
     }
-    printf("|%lu|", tracepacketipheader.tot_len-sizeof(struct iphdr)
-      -tracepacketipheader.ihl*WORDSIZE);
-      //-sizeof(struct tcphdr)-tracepackettcpheader.th_off*WORDSIZE);
+    if(flags[FLAG_PRINTPACKETS] == TRUE)
+      printf("|%lu|", tracepacketipheader.tot_len-sizeof(struct iphdr)
+        -tracepacketipheader.ihl*WORDSIZE-tracepackettcpheader.th_off*WORDSIZE);
     tcp_numfullheaders++;
     if(flags[FLAG_PRINTPACKETS] == TRUE)
     {
@@ -594,7 +594,7 @@ int main(int argc, char *argv[])
   tracepacketethernetheader = *(PacketEthernetHeader *)safeMalloc(sizeof(PacketEthernetHeader));
   tracepacketipheader = *(struct iphdr *)safeMalloc(sizeof(struct iphdr));
   initializeTables();
-  initializeTrafficMatrix();
+  initializeConnectionHashtable();
 
   parseInput(argc, argv, &tracefilename);
 
