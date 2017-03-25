@@ -53,9 +53,9 @@ ConnectionHashtableListNode *findInConnectionHashtable(char **originatoripaddres
     connectionhashtable.tableentrylists[connectionhashtablesearchkey].head);
   while(currentbucketnodeptr->next != NULL &&
     ((ConnectionHashtableTestStringEquality(currentbucketnodeptr->entry->orig_ip,
-      *sourceipaddresssearchvalue) == FALSE)
+      *originatoripaddress) == FALSE)
     || (ConnectionHashtableTestStringEquality(currentbucketnodeptr->entry->resp_ip,
-      *destipaddresssearchvalue) == FALSE)
+      *responderipaddress) == FALSE)
     || (originatorport != currentbucketnodeptr->entry->orig_port)
     || (responderport != currentbucketnodeptr->entry->resp_port)
     ))
@@ -81,68 +81,69 @@ int ConnectionHashtableTestStringEquality(char *string1, char *string2)
   return TRUE;
 }
 
-//START AGAIN HERE, EVERYTHING ABOVE SHOULD THEORETICALLY BE GOOD
-void initializeConnectionHashtableList(int listfirstentryipaddresskey,
-  char **listfirstentrysourceipaddress, char **listfirstentrydestipaddress,
-  int listfirstentrydatavol)
+void initializeConnectionHashtableList(char **originatoripaddress,
+  char **responderipaddress, unsigned int originatorport, unsigned int responderport)
 {
+  unsigned int connectionlistfirstkey = ConnectionHashtableHashCode(
+    originatoripaddress, responderipaddress, originatorport, responderport);
   ConnectionHashtableListNode **headbuffer = (ConnectionHashtableListNode **)ConnectionHashtableSafeMalloc(POINTERSIZE);
-  headbuffer = &(connectionhashtable.tableentrylists[listfirstentryipaddresskey].head);
-  initializeNewConnectionHashtableEntry(listfirstentryipaddresskey,
-    listfirstentrysourceipaddress, listfirstentrydestipaddress,
-    listfirstentrydatavol, headbuffer);
+  headbuffer = &(connectionhashtable.tableentrylists[connectionlistfirstkey].head);
+  initializeNewConnectionHashtableEntry(originatoripaddress, responderipaddress,
+    originatorport, responderport, headbuffer);
 }
 
-void initializeNewConnectionHashtableEntry(int newentryipaddresskey,
-  char **newentrysourceipaddress, char **newentrydestipaddress,
-  int newentrydatavol, ConnectionHashtableListNode **newnode)
+void initializeNewConnectionHashtableEntry(char **originatoripaddress,
+  char **responderipaddress, unsigned int originatorport, unsigned int responderport,
+  ConnectionHashtableListNode **newnode)
 {
   *newnode = (ConnectionHashtableListNode *)ConnectionHashtableSafeMalloc(sizeof(ConnectionHashtableListNode));
   (*newnode)->entry = (ConnectionHashtableListEntry *)ConnectionHashtableSafeMalloc(sizeof(ConnectionHashtableListEntry *));
   *((*newnode)->entry) = *(ConnectionHashtableListEntry *)ConnectionHashtableSafeMalloc(sizeof(ConnectionHashtableListEntry));
-  (*newnode)->entry->ipaddresskey = newentryipaddresskey;
-  (*newnode)->entry->orig_key = *newentrysourceipaddress;
-  (*newnode)->entry->resp_key = *newentrydestipaddress;
-  (*newnode)->entry->count = ENTRYCOUNTINITIALIZER;
-  (*newnode)->entry->datavol = newentrydatavol;
+  (*newnode)->entry->orig_ip = *originatoripaddress;
+  (*newnode)->entry->resp_ip = *responderipaddress;
+  (*newnode)->entry->orig_port = originatorport;
+  (*newnode)->entry->resp_port = responderport;
+  (*newnode)->entry->count = 0;
   (*newnode)->next = NULL;
 }
 
-void insertInConnectionHashtable(char **newentrysourceipaddress,
-  char **newentrydestipaddress, int newentrydatavol)
+void insertInConnectionHashtable(char **originatoripaddress, char **responderipaddress,
+  unsigned int originatorport, unsigned int responderport)
 {
-  unsigned int newentryipaddresskey = ConnectionHashtableHashCode(newentrysourceipaddress,
-    newentrydestipaddress)%(unsigned int)connectionhashtablecapacity;
+  unsigned int newconnectiontableentrykey = ConnectionHashtableHashCode(
+    originatoripaddress, responderipaddress, originatorport, responderport)
+    %(unsigned int)connectionhashtablecapacity;
   //if it already exists in the list, increment the # occurences, if not create
   //first check if list DNE
-  if(connectionhashtable.tableentrylists[newentryipaddresskey].head == NULL)
+  if(connectionhashtable.tableentrylists[newconnectiontableentrykey].head == NULL)
   {
-    initializeConnectionHashtableList(newentryipaddresskey, newentrysourceipaddress,
-      newentrydestipaddress, newentrydatavol);
+    initializeConnectionHashtableList(originatoripaddress, responderipaddress,
+      originatorport, responderport);
     connectionhashtablesize++;
   }
   else
   {
     //see if it's in the list, if so increment value, if not add it
-    ConnectionHashtableListNode *currentbucketnodeptr = (connectionhashtable.tableentrylists[newentryipaddresskey]
-      .head);
-    currentbucketnodeptr = findInConnectionHashtable(newentryipaddresskey, newentrysourceipaddress,
-      newentrydestipaddress);
+    ConnectionHashtableListNode *currentbucketnodeptr = (
+      connectionhashtable.tableentrylists[newconnectiontableentrykey].head);
+    currentbucketnodeptr = findInConnectionHashtable(originatoripaddress,
+      responderipaddress, originatorport, responderport);
     if(currentbucketnodeptr != NULL && (ConnectionHashtableTestStringEquality(currentbucketnodeptr
-      ->entry->orig_key,
-      *newentrysourceipaddress) == TRUE) && ConnectionHashtableTestStringEquality(
-        currentbucketnodeptr->entry->resp_key, *newentrydestipaddress) == TRUE)
+      ->entry->orig_ip,*originatoripaddress) == TRUE)
+      && (ConnectionHashtableTestStringEquality(currentbucketnodeptr->entry->resp_ip,
+        *responderipaddress) == TRUE)
+      && (currentbucketnodeptr->entry->orig_port == originatorport)
+      && (currentbucketnodeptr->entry->resp_port == responderport))
     {
       currentbucketnodeptr->entry->count++;
-      currentbucketnodeptr->entry->datavol += newentrydatavol;
     }
     else if(currentbucketnodeptr != NULL)
     {
       ConnectionHashtableListNode **currentbucketnodeptrbuffer = (ConnectionHashtableListNode **)ConnectionHashtableSafeMalloc(
         POINTERSIZE);
       currentbucketnodeptrbuffer = &(currentbucketnodeptr->next);
-      initializeNewConnectionHashtableEntry(newentryipaddresskey, newentrysourceipaddress,
-        newentrydestipaddress, newentrydatavol, currentbucketnodeptrbuffer);
+      initializeNewConnectionHashtableEntry(originatoripaddress, responderipaddress,
+        originatorport, responderport, currentbucketnodeptrbuffer);
       connectionhashtablesize++;
     }
   }
@@ -151,8 +152,8 @@ void insertInConnectionHashtable(char **newentrysourceipaddress,
 unsigned int ConnectionHashtableHashCode(char **originatoripaddress,
   char **responderipaddress, unsigned int originatorport, unsigned int responderport)
 {
-  unsigned int hashcode = (unsigned int)originatoripaddress[0]+originatorport+
-    (unsigned int)responderipaddress+responderport;
+  unsigned int hashcode = (unsigned int)(*originatoripaddress)[0]+originatorport+
+    (unsigned int)(*responderipaddress)[0]+responderport;
   return hashcode;
 }
 

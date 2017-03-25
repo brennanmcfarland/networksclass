@@ -138,6 +138,7 @@ void printTCPPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   printIPAddress(destinationaddress);
   printf(" %u ", tracepackettcpheader.th_dport);
   printf(" T ");
+  printf("%d ", calculateTCPAppDataVolume());
   printf("%u ", tracepackettcpheader.seq);
   printf("%u", tracepackettcpheader.ack_seq);
   //printf("%u %d %d\n", ihl*WORDSIZE, protocol, ttl);
@@ -180,11 +181,12 @@ void printConnectionHashtable()
     {
       do
       {
-        printIPAddress(currentnode->entry->orig_key);
-        printf(" ");
-        printIPAddress(currentnode->entry->resp_key);
-        printf(" %d ", currentnode->entry->count);
-        printf("%d", currentnode->entry->datavol);
+        printIPAddress(currentnode->entry->orig_ip);
+        printf(" %u ", currentnode->entry->orig_port);
+        printIPAddress(currentnode->entry->resp_ip);
+        printf(" %u ", currentnode->entry->resp_port);
+        printf("%d ", currentnode->entry->count);
+        printf("%d ", currentnode->entry->datavol);
         printf("\n");
       }while((currentnode = currentnode->next) != NULL);
     }
@@ -362,10 +364,6 @@ void analyzePacketTCPHeader()
       return;
     }
     if(flags[FLAG_PRINTPACKETS] == TRUE)
-      printf("|%lu|", tracepacketipheader.tot_len-sizeof(struct iphdr)
-        -tracepacketipheader.ihl*WORDSIZE-tracepackettcpheader.th_off*WORDSIZE);
-    tcp_numfullheaders++;
-    if(flags[FLAG_PRINTPACKETS] == TRUE)
     {
       printPacketInfo(formatTimeStamp(
         tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec),
@@ -431,7 +429,7 @@ void tcphdrToHostOrder(struct tcphdr *packettcpheader)
 {
   packettcpheader->th_sport = ntohs(packettcpheader->th_sport);
   packettcpheader->th_dport = ntohs(packettcpheader->th_dport);
-  packettcpheader->th_off = ntohs(packettcpheader->th_off);
+  //packettcpheader->th_off = ntohs(packettcpheader->th_off);
   packettcpheader->seq = ntohl(packettcpheader->seq);
   packettcpheader->ack_seq = ntohl(packettcpheader->ack_seq);
 }
@@ -442,6 +440,13 @@ void udphdrToHostOrder(struct udphdr *packetudpheader)
   packetudpheader->uh_ulen = ntohs(packetudpheader->len);
   packetudpheader->source = ntohs(packetudpheader->source);
   packetudpheader->dest = ntohs(packetudpheader->dest);
+}
+
+//return the data volume carried in a TCP/UDP segment
+int calculateTCPAppDataVolume()
+{
+  return tracepacketipheader.tot_len-tracepacketipheader.ihl*WORDSIZE-
+    tracepackettcpheader.th_off*WORDSIZE;
 }
 
 //returns whether 2 strings are equal

@@ -166,6 +166,7 @@ void packetEthernetHeaderToHostOrder(PacketEthernetHeader * packetethernetheader
 void iphdrToHostOrder(struct iphdr * packetipheader);
 void tcphdrToHostOrder(struct tcphdr *packettcpheader);
 void udphdrToHostOrder(struct udphdr *packetudpheader);
+int calculateTCPAppDataVolume();
 int testStringEquality(char *string1, char *string2);
 char *formatIPAddress(u_int32_t ipaddressint);
 double formatTimeStamp(int secsinceepoch, int msecsinsec);
