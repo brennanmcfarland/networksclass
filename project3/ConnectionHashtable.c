@@ -103,7 +103,7 @@ void initializeNewConnectionHashtableEntry(char **originatoripaddress,
   (*newnode)->entry->resp_ip = *responderipaddress;
   (*newnode)->entry->orig_port = originatorport;
   (*newnode)->entry->resp_port = responderport;
-  (*newnode)->entry->count = 0;
+  (*newnode)->entry->count = 1;
   (*newnode)->next = NULL;
 }
 

@@ -153,7 +153,7 @@ void printUDPPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   printIPAddress(sourceaddress);
   printf(" %u ", tracepacketudpheader.source);
   printIPAddress(destinationaddress);
-  printf(" %u ", tracepacketudpheader.dest);
+  printf(" %u", tracepacketudpheader.dest);
   printf(" U ");
   printf("%lu", tracepacketudpheader.len-sizeof(struct udphdr));
   printf("\n");
@@ -176,7 +176,8 @@ void printConnectionHashtable()
   int i;
   for(i=INTINITIALIZER; i<connectionhashtablecapacity; i++)
   {
-    ConnectionHashtableListNode *currentnode = (connectionhashtable.tableentrylists[i].head);
+    ConnectionHashtableListNode *currentnode = connectionhashtable.tableentrylists[i].head;
+    //this is always returning false for some reason
     if(currentnode != NULL)
     {
       do
@@ -325,9 +326,6 @@ int analyzePacketIPHeader(int truncatedethhdr)
     insertDestIP(tracepacketipheader.daddr);
     tracepacketipheadersourceaddress = formatIPAddress(tracepacketipheader.saddr);
     tracepacketipheaderdestaddress = formatIPAddress(tracepacketipheader.daddr);
-    //assuming traffic matrix only counts values with full ip header
-    //  insertInConnectionHashtable(tracepacketipheadersourceaddressbuffer,
-    //    tracepacketipheaderdestaddressbuffer, tracepacketipheader.tot_len);
   }
   else
   {
@@ -363,6 +361,11 @@ void analyzePacketTCPHeader()
       tcp_numpartialheaders++; //if partial tcp header, do nothing
       return;
     }
+    tcp_numfullheaders++;
+    char *tcppacketsourceip = formatIPAddress(tracepacketipheader.saddr);
+    char *tcppacketdestip = formatIPAddress(tracepacketipheader.daddr);
+    insertInConnectionHashtable(&tcppacketsourceip, &tcppacketdestip,
+      tracepackettcpheader.th_sport, tracepackettcpheader.th_dport);
     if(flags[FLAG_PRINTPACKETS] == TRUE)
     {
       printPacketInfo(formatTimeStamp(
@@ -613,6 +616,8 @@ int main(int argc, char *argv[])
   safeOpen(&tracefilestream, tracefilename, 'r');
 
   analyzePacketTrace();
+
+  printConnectionHashtable();
 
   return EXIT_NOERROR;
 }
