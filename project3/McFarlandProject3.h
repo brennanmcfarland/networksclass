@@ -151,6 +151,7 @@ void printTCPPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   char destinationaddress[IPADDRESSSIZE]);
 void printUDPPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   char destinationaddress[IPADDRESSSIZE]);
+void printConnectionSummary(ConnectionHashtableListNode *currentnode);
 void printPacketTypes();
 void printTrafficMatrix();
 void printMACAddress(char *macaddress);

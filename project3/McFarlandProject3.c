@@ -159,6 +159,43 @@ void printUDPPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   printf("\n");
 }
 
+//prints the connection summaries stored in the connection hashtable
+void printConnectionSummaries()
+{
+  int i;
+  for(i=INTINITIALIZER; i<connectionhashtablecapacity; i++)
+  {
+    //printf("bucket %d\n", i);
+    ConnectionHashtableListNode *currentnode = connectionhashtable.tableentrylists[i].head;
+    //this is always returning false for some reason
+    if(currentnode != NULL)
+    {
+      do
+      {
+        printConnectionSummary(currentnode);
+        printf("\n");
+      }while((currentnode = currentnode->next) != NULL);
+    }
+  }
+}
+
+//prints a single connection summary
+void printConnectionSummary(ConnectionHashtableListNode *currentnode)
+{
+  printf("%.6f ", formatTimeStamp(currentnode->entry->secsinceepoch_start,
+    currentnode->entry->msecsincesec_start));
+  printf("dur ");
+  printIPAddress(currentnode->entry->orig_ip);
+  printf(" %u ", currentnode->entry->orig_port);
+  printIPAddress(currentnode->entry->resp_ip);
+  printf(" %u ", currentnode->entry->resp_port);
+  printf("U/T ");
+  printf("o_to_r_packets ");
+  printf("o_to_r_app_bytes ");
+  printf("r_to_o_packets ");
+  printf("r_to__app_bytes ");
+}
+
 void printPacketTypes()
 {
   printf("ETH: %d %d\n", eth_numfullpackets, eth_numpartialpackets);
@@ -275,12 +312,8 @@ void analyzePacketTrace()
   if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
     printf("Reached end of file.\n");
 
-  /*if(flags[FLAG_PRINTTRACESUMMARY] == TRUE)
-    printTraceSummary();*/
-  /*if(flags[FLAG_PRINTPACKETTYPES] == TRUE)
-    printPacketTypes();*/
-  /*if(flags[FLAG_PRINTTRAFFICMATRIX] == TRUE)
-    printConnectionHashtable();*/
+  if(flags[FLAG_PRINTCONNECTIONSUMMARIES] == TRUE)
+    printConnectionSummaries();
 }
 
 //analyze a single ethernet packet header, FALSE if not truncated/successful
@@ -366,7 +399,8 @@ void analyzePacketTCPHeader()
     char *tcppacketsourceip = formatIPAddress(tracepacketipheader.saddr);
     char *tcppacketdestip = formatIPAddress(tracepacketipheader.daddr);
     insertInConnectionHashtable(&tcppacketsourceip, &tcppacketdestip,
-      tracepackettcpheader.th_sport, tracepackettcpheader.th_dport);
+      tracepackettcpheader.th_sport, tracepackettcpheader.th_dport,
+      tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec);
     if(flags[FLAG_PRINTPACKETS] == TRUE)
     {
       printPacketInfo(formatTimeStamp(
@@ -618,7 +652,7 @@ int main(int argc, char *argv[])
 
   analyzePacketTrace();
 
-  printConnectionHashtable();
+  //printConnectionHashtable();
 
   return EXIT_NOERROR;
 }

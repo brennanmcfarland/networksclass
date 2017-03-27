@@ -18,8 +18,11 @@ typedef struct ConnectionHashtableListEntry
   char *resp_ip;
   unsigned int orig_port;
   unsigned int resp_port;
+  int secsinceepoch_start;
+  int msecsincesec_start;
+  int secsinceepoch_end;
+  int msecsincesec_end;
   //deprecated, remove these once it's all transferred over to the new stuff
-  int ipaddresskey;
   int count;
   int datavol;
 } ConnectionHashtableListEntry;
@@ -45,12 +48,14 @@ ConnectionHashtableListNode *findInConnectionHashtable(char **originatoripaddres
   char **responderipaddress, unsigned int originatorport, unsigned int responderport);
 int ConnectionHashtableTestStringEquality(char *string1, char *string2);
 void initializeConnectionHashtableList(char **originatoripaddress,
-  char **responderipaddress, unsigned int originatorport, unsigned int responderport);
+  char **responderipaddress, unsigned int originatorport, unsigned int responderport,
+  int secsinceepoch_start, int msecsincesec_start);
 void initializeNewConnectionHashtableEntry(char **originatoripaddress,
   char **responderipaddress, unsigned int originatorport, unsigned int responderport,
-  ConnectionHashtableListNode **newnode);
+  int secsinceepoch_start, int msecsincesec_start, ConnectionHashtableListNode **newnode);
 void insertInConnectionHashtable(char **originatoripaddress, char **responderipaddress,
-  unsigned int originatorport, unsigned int responderport);
+  unsigned int originatorport, unsigned int responderport, int secsinceepoch_start,
+  int msecsincesec_start);
 unsigned int ConnectionHashtableHashCode(char **originatoripaddress,
   char **responderipaddress, unsigned int originatorport, unsigned int responderport);
 void initializeConnectionHashtable();
