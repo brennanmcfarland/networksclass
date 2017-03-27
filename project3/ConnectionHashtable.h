@@ -56,6 +56,8 @@ void initializeNewConnectionHashtableEntry(char **originatoripaddress,
 void insertInConnectionHashtable(char **originatoripaddress, char **responderipaddress,
   unsigned int originatorport, unsigned int responderport, int secsinceepoch_start,
   int msecsincesec_start);
+int compareTimeStamps(int secsinceepoch_a, int msecsincesec_a, int secsinceepoch_b,
+  int msecsincesec_b);
 unsigned int ConnectionHashtableHashCode(char **originatoripaddress,
   char **responderipaddress, unsigned int originatorport, unsigned int responderport);
 void initializeConnectionHashtable();

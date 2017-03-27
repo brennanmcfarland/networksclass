@@ -158,6 +158,16 @@ void insertInConnectionHashtable(char **originatoripaddress, char **responderipa
       && (currentbucketnodeptr->entry->resp_port == responderport))
     {
       currentbucketnodeptr->entry->count++;
+      if((double)secsinceepoch_start+(double)msecsincesec_start/1000. <
+        (double)(currentbucketnodeptr->entry->secsinceepoch_start)
+        +(double)(currentbucketnodeptr->entry->msecsincesec_start))
+      if(compareTimeStamps(secsinceepoch_start, msecsincesec_start,
+        currentbucketnodeptr->entry->secsinceepoch_start,
+        currentbucketnodeptr->entry->msecsincesec_start) == TRUE)
+      {
+        currentbucketnodeptr->entry->secsinceepoch_start = secsinceepoch_start;
+        currentbucketnodeptr->entry->msecsincesec_start = msecsincesec_start;
+      }
       //printf("incrementing count of existing node in bucket %d\n", newconnectiontableentrykey);
     }
     else if(currentbucketnodeptr != NULL)
@@ -172,6 +182,16 @@ void insertInConnectionHashtable(char **originatoripaddress, char **responderipa
       //printf("inserting in new node in bucket %d\n", newconnectiontableentrykey);
     }
   }
+}
+
+//TRUE if timestamp b is later, FALSE otherwise
+int compareTimeStamps(int secsinceepoch_a, int msecsincesec_a, int secsinceepoch_b,
+  int msecsincesec_b)
+{
+  if((double)secsinceepoch_a+(double)msecsincesec_a/1000. <
+    (double)secsinceepoch_b+(double)msecsincesec_b)
+    return TRUE;
+  return FALSE;
 }
 
 unsigned int ConnectionHashtableHashCode(char **originatoripaddress,

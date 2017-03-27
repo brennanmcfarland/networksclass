@@ -13,8 +13,7 @@
 */
 
 /*
-  caplen appears to only be the length of the ethernet and ip headers combined,
-  what about tcp/udp headers?
+  TODO: do the stuff for ending ts for dur
 */
 #include <unistd.h> //for getopt and file operations
 #include <stdlib.h>
