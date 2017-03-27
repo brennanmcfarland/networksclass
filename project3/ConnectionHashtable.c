@@ -44,7 +44,8 @@ ConnectionHashtableListNode *findInConnectionHashtable(char **originatoripaddres
   char **responderipaddress, unsigned int originatorport, unsigned int responderport)
 {
   unsigned int connectionhashtablesearchkey = ConnectionHashtableHashCode(
-    originatoripaddress, responderipaddress, originatorport, responderport);
+    originatoripaddress, responderipaddress, originatorport, responderport)
+    %(unsigned int)connectionhashtablecapacity;
   //if the list DNE, it's not there
   if(connectionhashtable.tableentrylists[connectionhashtablesearchkey].head == NULL)
     return NULL;
@@ -84,13 +85,29 @@ int ConnectionHashtableTestStringEquality(char *string1, char *string2)
 void initializeConnectionHashtableList(char **originatoripaddress,
   char **responderipaddress, unsigned int originatorport, unsigned int responderport)
 {
+  /*
+  THE LIST ISN'T BEING INITIALIZED FOR SOME REASON
+  */
   unsigned int connectionlistfirstkey = ConnectionHashtableHashCode(
-    originatoripaddress, responderipaddress, originatorport, responderport);
+    originatoripaddress, responderipaddress, originatorport, responderport)
+    %(unsigned int)connectionhashtablecapacity;
+  //printf("creating new list with key %u\n", connectionlistfirstkey);
   ConnectionHashtableListNode **headbuffer = (ConnectionHashtableListNode **)ConnectionHashtableSafeMalloc(POINTERSIZE);
   headbuffer = &(connectionhashtable.tableentrylists[connectionlistfirstkey].head);
   initializeNewConnectionHashtableEntry(originatoripaddress, responderipaddress,
     originatorport, responderport, headbuffer);
 }
+/*
+void initializeTrafficMatrixList(int listfirstentryipaddresskey,
+  char **listfirstentrysourceipaddress, char **listfirstentrydestipaddress,
+  int listfirstentrydatavol)
+{
+  MatrixListNode **headbuffer = (MatrixListNode **)trafficMatrixSafeMalloc(POINTERSIZE);
+  headbuffer = &(trafficmatrix.tableentrylists[listfirstentryipaddresskey].head);
+  initializeNewTrafficMatrixEntry(listfirstentryipaddresskey,
+    listfirstentrysourceipaddress, listfirstentrydestipaddress,
+    listfirstentrydatavol, headbuffer);
+}*/
 
 void initializeNewConnectionHashtableEntry(char **originatoripaddress,
   char **responderipaddress, unsigned int originatorport, unsigned int responderport,
@@ -120,6 +137,7 @@ void insertInConnectionHashtable(char **originatoripaddress, char **responderipa
     initializeConnectionHashtableList(originatoripaddress, responderipaddress,
       originatorport, responderport);
     connectionhashtablesize++;
+    //printf("inserting in new bucket %d\n", newconnectiontableentrykey);
   }
   else
   {
@@ -136,6 +154,7 @@ void insertInConnectionHashtable(char **originatoripaddress, char **responderipa
       && (currentbucketnodeptr->entry->resp_port == responderport))
     {
       currentbucketnodeptr->entry->count++;
+      //printf("incrementing count of existing node in bucket %d\n", newconnectiontableentrykey);
     }
     else if(currentbucketnodeptr != NULL)
     {
@@ -145,6 +164,7 @@ void insertInConnectionHashtable(char **originatoripaddress, char **responderipa
       initializeNewConnectionHashtableEntry(originatoripaddress, responderipaddress,
         originatorport, responderport, currentbucketnodeptrbuffer);
       connectionhashtablesize++;
+      //printf("inserting in new node in bucket %d\n", newconnectiontableentrykey);
     }
   }
 }

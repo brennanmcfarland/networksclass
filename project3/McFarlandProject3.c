@@ -176,6 +176,7 @@ void printConnectionHashtable()
   int i;
   for(i=INTINITIALIZER; i<connectionhashtablecapacity; i++)
   {
+    //printf("bucket %d\n", i);
     ConnectionHashtableListNode *currentnode = connectionhashtable.tableentrylists[i].head;
     //this is always returning false for some reason
     if(currentnode != NULL)
