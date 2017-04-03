@@ -428,6 +428,12 @@ void analyzePacketUDPHeader()
     udphdrToHostOrder(tracepacketudpheaderbuffer);
     tracepacketmetainfo.meta_caplen -= sizeof(struct udphdr);
     udp_numfullheaders++;
+    char *udppacketsourceip = formatIPAddress(tracepacketipheader.saddr);
+    char *udppacketdestip = formatIPAddress(tracepacketipheader.daddr);
+    insertInConnectionHashtable(&udppacketsourceip, &udppacketdestip,
+      tracepacketudpheader.uh_sport, tracepacketudpheader.uh_dport,
+      tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec,
+      FALSE, tracepacketudpheader.len-sizeof(struct udphdr));
     if(flags[FLAG_PRINTPACKETS] == TRUE)
     {
       printPacketInfo(formatTimeStamp(
