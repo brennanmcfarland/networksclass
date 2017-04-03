@@ -100,45 +100,63 @@ void printPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   char destinationaddress[IPADDRESSSIZE], unsigned int ihl, u_int8_t protocol,
   u_int8_t ttl, int isTCP)
 {
+  if(checkValidIPPacket(timestamp, sourceaddress, destinationaddress) == FALSE)
+  {
+    if(isTCP == TRUE)
+      printFullTCPPacketInfo(timestamp, sourceaddress, destinationaddress);
+    else
+      printUDPPacketInfo(timestamp, sourceaddress, destinationaddress);
+  }
+}
+
+//prints packet ip information and returns TRUE if something's wrong with the packet
+int checkValidIPPacket(double timestamp, char sourceaddress[IPADDRESSSIZE],
+  char destinationaddress[IPADDRESSSIZE])
+{
   char *truncatedipheadermessage = "IP-truncated";
   char *nonipheadermessage = "non-IP";
   char *unknownwhetherip = "unknown";
   if(testStringEquality(sourceaddress, truncatedipheadermessage))
   {
     printf("%.6f %s\n", timestamp, truncatedipheadermessage);
+    return TRUE;
   }
   else if(testStringEquality(sourceaddress, nonipheadermessage))
   {
     printf("%.6f %s\n", timestamp, nonipheadermessage);
+    return TRUE;
   }
   else if(testStringEquality(sourceaddress, unknownwhetherip))
   {
     printf("%.6f %s\n", timestamp, unknownwhetherip);
+    return TRUE;
   }
-  else
-  {
-    if(isTCP == TRUE)
-      printTCPPacketInfo(timestamp, sourceaddress, destinationaddress);
-    else
-      printUDPPacketInfo(timestamp, sourceaddress, destinationaddress);
-  }
+  return FALSE;
 }
 
-//prints packet information for a valid tcp packet
-void printTCPPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
+//prints more detailed packet information for a valid tcp packet, including ack no, etc
+void printFullTCPPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   char destinationaddress[IPADDRESSSIZE])
 {
   printf("%.6f ", timestamp);
-  printIPAddress(sourceaddress);
-  printf(" %u ", tracepackettcpheader.th_sport);
-  printIPAddress(destinationaddress);
-  printf(" %u ", tracepackettcpheader.th_dport);
+  printTCPSourceDest(sourceaddress, destinationaddress, tracepackettcpheader.th_sport,
+    tracepackettcpheader.th_dport);
   printf(" T ");
   printf("%d ", calculateTCPAppDataVolume());
   printf("%u ", tracepackettcpheader.seq);
   printf("%u", tracepackettcpheader.ack_seq);
   //printf("%u %d %d\n", ihl*WORDSIZE, protocol, ttl);
   printf("\n");
+}
+
+//prints addresses and ports for a valid tcp packet
+void printTCPSourceDest(char sourceaddress[IPADDRESSSIZE],
+  char destinationaddress[IPADDRESSSIZE], unsigned int srcport, unsigned int destport)
+{
+  printIPAddress(sourceaddress);
+  printf(" %u ", srcport);
+  printIPAddress(destinationaddress);
+  printf(" %u ", destport);
 }
 
 //prints packet information for a valid udp packet
@@ -196,8 +214,41 @@ void printConnectionSummary(ConnectionHashtableListNode *currentnode, int isTCP)
     printf("U");
   printf(" %u ", currentnode->entry->o_to_r_packets);
   printf("%d ", currentnode->entry->o_to_r_app_bytes);
-  printf("%u ", currentnode->entry->r_to_o_packets);
-  printf("%d ", currentnode->entry->r_to_o_app_bytes);
+  if(currentnode->entry->r_to_o_packets == 0)
+    printf("? ? ");
+  else
+  {
+    printf("%u ", currentnode->entry->r_to_o_packets);
+    printf("%d ", currentnode->entry->r_to_o_app_bytes);
+  }
+}
+
+//prints the connection RTTs stored in the connection hashtable
+void printRTTs()
+{
+  int i;
+  for(i=INTINITIALIZER; i<connectionhashtablecapacity; i++)
+  {
+    //printf("bucket %d\n", i);
+    ConnectionHashtableListNode *currentnode = connectionhashtable.tableentrylists[i].head;
+    //this is always returning false for some reason
+    if(currentnode != NULL)
+    {
+      do
+      {
+        if(currentnode->entry->isTCP == TRUE)
+          printRTT(currentnode);
+        printf("\n");
+      }while((currentnode = currentnode->next) != NULL);
+    }
+  }
+}
+
+//prints a single RTT
+void printRTT(ConnectionHashtableListNode *currentnode)
+{
+  printTCPSourceDest(currentnode->entry->orig_ip, currentnode->entry->resp_ip,
+    currentnode->entry->orig_port, currentnode->entry->resp_port);
 }
 
 void printPacketTypes()
@@ -318,6 +369,8 @@ void analyzePacketTrace()
 
   if(flags[FLAG_PRINTCONNECTIONSUMMARIES] == TRUE)
     printConnectionSummaries();
+  if(flags[FLAG_PRINTROUNDTRIPTIMES] == TRUE)
+    printRTTs();
 }
 
 //analyze a single ethernet packet header, FALSE if not truncated/successful
@@ -549,7 +602,6 @@ double formatAsTrailingDecimal(int integerdigits)
   double trailingdecimal = (double)integerdigits;
   trailingdecimal = trailingdecimal/TRAILINGDECIMALCONVERTER;
   return trailingdecimal;
-
 }
 
 //handles parsing of all user input arguments, sets flags and vars appropriately

@@ -147,11 +147,17 @@ void printEthernetHeaderInfo(double timestamp, char *sourceaddress, char *destin
 void printPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   char destinationaddress[IPADDRESSSIZE], unsigned int ihl, u_int8_t protocol,
   u_int8_t ttl, int isTCP);
-void printTCPPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
+int checkValidIPPacket(double timestamp, char sourceaddress[IPADDRESSSIZE],
   char destinationaddress[IPADDRESSSIZE]);
+void printFullTCPPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
+  char destinationaddress[IPADDRESSSIZE]);
+void printTCPSourceDest(char sourceaddress[IPADDRESSSIZE],
+  char destinationaddress[IPADDRESSSIZE], unsigned int srcport, unsigned int destport);
 void printUDPPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   char destinationaddress[IPADDRESSSIZE]);
 void printConnectionSummary(ConnectionHashtableListNode *currentnode, int isTCP);
+void printRTTs();
+void printRTT(ConnectionHashtableListNode *currentnode);
 void printPacketTypes();
 void printTrafficMatrix();
 void printMACAddress(char *macaddress);
