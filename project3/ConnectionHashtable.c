@@ -84,19 +84,18 @@ int ConnectionHashtableTestStringEquality(char *string1, char *string2)
 
 void initializeConnectionHashtableList(char **originatoripaddress,
   char **responderipaddress, unsigned int originatorport, unsigned int responderport,
-  int secsinceepoch, int msecsincesec)
+  int secsinceepoch, int msecsincesec, int isTCP, int app_data_vol)
 {
-  /*
-  THE LIST ISN'T BEING INITIALIZED FOR SOME REASON
-  */
   unsigned int connectionlistfirstkey = ConnectionHashtableHashCode(
     originatoripaddress, responderipaddress, originatorport, responderport)
     %(unsigned int)connectionhashtablecapacity;
   //printf("creating new list with key %u\n", connectionlistfirstkey);
-  ConnectionHashtableListNode **headbuffer = (ConnectionHashtableListNode **)ConnectionHashtableSafeMalloc(POINTERSIZE);
+  ConnectionHashtableListNode **headbuffer =
+    (ConnectionHashtableListNode **)ConnectionHashtableSafeMalloc(POINTERSIZE);
   headbuffer = &(connectionhashtable.tableentrylists[connectionlistfirstkey].head);
   initializeNewConnectionHashtableEntry(originatoripaddress, responderipaddress,
-    originatorport, responderport, secsinceepoch, msecsincesec, headbuffer);
+    originatorport, responderport, secsinceepoch, msecsincesec,
+    secsinceepoch, msecsincesec, isTCP, app_data_vol, headbuffer);
 }
 /*
 void initializeTrafficMatrixList(int listfirstentryipaddresskey,
@@ -112,7 +111,8 @@ void initializeTrafficMatrixList(int listfirstentryipaddresskey,
 
 void initializeNewConnectionHashtableEntry(char **originatoripaddress,
   char **responderipaddress, unsigned int originatorport, unsigned int responderport,
-  int secsinceepoch_start, int msecsincesec_start, ConnectionHashtableListNode **newnode)
+  int secsinceepoch_start, int msecsincesec_start, int secsinceepoch_end,
+  int msecsincesec_end, int isTCP, int app_data_vol, ConnectionHashtableListNode **newnode)
 {
   *newnode = (ConnectionHashtableListNode *)ConnectionHashtableSafeMalloc(sizeof(ConnectionHashtableListNode));
   (*newnode)->entry = (ConnectionHashtableListEntry *)ConnectionHashtableSafeMalloc(sizeof(ConnectionHashtableListEntry *));
@@ -123,13 +123,19 @@ void initializeNewConnectionHashtableEntry(char **originatoripaddress,
   (*newnode)->entry->resp_port = responderport;
   (*newnode)->entry->secsinceepoch_start = secsinceepoch_start;
   (*newnode)->entry->msecsincesec_start = msecsincesec_start;
+  (*newnode)->entry->secsinceepoch_end = secsinceepoch_end;
+  (*newnode)->entry->msecsincesec_end = msecsincesec_end;
+  (*newnode)->entry->isTCP = isTCP;
+  (*newnode)->entry->o_to_r_packets = 1;
+  (*newnode)->entry->o_to_r_app_bytes = app_data_vol;
+  (*newnode)->entry->r_to_o_packets = 0;
   (*newnode)->entry->count = 1;
   (*newnode)->next = NULL;
 }
 
 void insertInConnectionHashtable(char **originatoripaddress, char **responderipaddress,
-  unsigned int originatorport, unsigned int responderport, int secsinceepoch_start,
-  int msecsincesec_start)
+  unsigned int originatorport, unsigned int responderport, int secsinceepoch,
+  int msecsincesec, int isTCP, int app_data_vol)
 {
   unsigned int newconnectiontableentrykey = ConnectionHashtableHashCode(
     originatoripaddress, responderipaddress, originatorport, responderport)
@@ -139,7 +145,7 @@ void insertInConnectionHashtable(char **originatoripaddress, char **responderipa
   if(connectionhashtable.tableentrylists[newconnectiontableentrykey].head == NULL)
   {
     initializeConnectionHashtableList(originatoripaddress, responderipaddress,
-      originatorport, responderport, secsinceepoch_start, msecsincesec_start);
+      originatorport, responderport, secsinceepoch, msecsincesec, isTCP, app_data_vol);
     connectionhashtablesize++;
     //printf("inserting in new bucket %d\n", newconnectiontableentrykey);
   }
@@ -150,23 +156,36 @@ void insertInConnectionHashtable(char **originatoripaddress, char **responderipa
       connectionhashtable.tableentrylists[newconnectiontableentrykey].head);
     currentbucketnodeptr = findInConnectionHashtable(originatoripaddress,
       responderipaddress, originatorport, responderport);
-    if(currentbucketnodeptr != NULL && (ConnectionHashtableTestStringEquality(currentbucketnodeptr
-      ->entry->orig_ip,*originatoripaddress) == TRUE)
-      && (ConnectionHashtableTestStringEquality(currentbucketnodeptr->entry->resp_ip,
-        *responderipaddress) == TRUE)
-      && (currentbucketnodeptr->entry->orig_port == originatorport)
-      && (currentbucketnodeptr->entry->resp_port == responderport))
+    if(testConnectionEquality(originatoripaddress, responderipaddress,
+        originatorport, responderport, isTCP, currentbucketnodeptr) == TRUE
+      ||
+      testConnectionEquality(responderipaddress, originatoripaddress,
+        responderport, originatorport, isTCP, currentbucketnodeptr) == TRUE)
     {
-      currentbucketnodeptr->entry->count++;
-      if((double)secsinceepoch_start+(double)msecsincesec_start/1000. <
-        (double)(currentbucketnodeptr->entry->secsinceepoch_start)
-        +(double)(currentbucketnodeptr->entry->msecsincesec_start))
-      if(compareTimeStamps(secsinceepoch_start, msecsincesec_start,
-        currentbucketnodeptr->entry->secsinceepoch_start,
-        currentbucketnodeptr->entry->msecsincesec_start) == TRUE)
+      if(testConnectionEquality(originatoripaddress, responderipaddress,
+        originatorport, responderport, isTCP, currentbucketnodeptr) == TRUE)
       {
-        currentbucketnodeptr->entry->secsinceepoch_start = secsinceepoch_start;
-        currentbucketnodeptr->entry->msecsincesec_start = msecsincesec_start;
+        currentbucketnodeptr->entry->o_to_r_packets++;
+        currentbucketnodeptr->entry->o_to_r_app_bytes += app_data_vol;
+      }
+      else
+      {
+        currentbucketnodeptr->entry->r_to_o_packets++;
+        currentbucketnodeptr->entry->r_to_o_app_bytes += app_data_vol;
+      }
+      if(compareTimeStamps(secsinceepoch, msecsincesec,
+        currentbucketnodeptr->entry->secsinceepoch_start,
+        currentbucketnodeptr->entry->msecsincesec_start) == FALSE)
+      {
+        currentbucketnodeptr->entry->secsinceepoch_start = secsinceepoch;
+        currentbucketnodeptr->entry->msecsincesec_start = msecsincesec;
+      }
+      if(compareTimeStamps(secsinceepoch, msecsincesec,
+        currentbucketnodeptr->entry->secsinceepoch_end,
+        currentbucketnodeptr->entry->msecsincesec_end) == TRUE)
+      {
+        currentbucketnodeptr->entry->secsinceepoch_end = secsinceepoch;
+        currentbucketnodeptr->entry->msecsincesec_end = msecsincesec;
       }
       //printf("incrementing count of existing node in bucket %d\n", newconnectiontableentrykey);
     }
@@ -176,12 +195,28 @@ void insertInConnectionHashtable(char **originatoripaddress, char **responderipa
         POINTERSIZE);
       currentbucketnodeptrbuffer = &(currentbucketnodeptr->next);
       initializeNewConnectionHashtableEntry(originatoripaddress, responderipaddress,
-        originatorport, responderport, secsinceepoch_start, msecsincesec_start,
-        currentbucketnodeptrbuffer);
+        originatorport, responderport, secsinceepoch, msecsincesec, secsinceepoch,
+        msecsincesec, isTCP, app_data_vol, currentbucketnodeptrbuffer);
       connectionhashtablesize++;
       //printf("inserting in new node in bucket %d\n", newconnectiontableentrykey);
     }
   }
+}
+
+//TRUE if packets are from the same connection
+int testConnectionEquality(char **originatoripaddress, char **responderipaddress,
+  unsigned int originatorport, unsigned int responderport, int isTCP,
+  ConnectionHashtableListNode *currentbucketnodeptr)
+{
+  if(currentbucketnodeptr != NULL && (ConnectionHashtableTestStringEquality(currentbucketnodeptr
+    ->entry->orig_ip,*originatoripaddress) == TRUE)
+    && (ConnectionHashtableTestStringEquality(currentbucketnodeptr->entry->resp_ip,
+      *responderipaddress) == TRUE)
+    && (currentbucketnodeptr->entry->orig_port == originatorport)
+    && (currentbucketnodeptr->entry->resp_port == responderport)
+    && (isTCP == currentbucketnodeptr->entry->isTCP))
+    return TRUE;
+  return FALSE;
 }
 
 //TRUE if timestamp b is later, FALSE otherwise

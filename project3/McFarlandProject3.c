@@ -12,9 +12,6 @@
   -m prints traffic matrix
 */
 
-/*
-  TODO: do the stuff for ending ts for dur
-*/
 #include <unistd.h> //for getopt and file operations
 #include <stdlib.h>
 #include <stdio.h> //for file operations
@@ -171,7 +168,10 @@ void printConnectionSummaries()
     {
       do
       {
-        printConnectionSummary(currentnode);
+        if(currentnode->entry->isTCP == TRUE)
+          printConnectionSummary(currentnode, TRUE);
+        else
+          printConnectionSummary(currentnode, FALSE);
         printf("\n");
       }while((currentnode = currentnode->next) != NULL);
     }
@@ -179,20 +179,25 @@ void printConnectionSummaries()
 }
 
 //prints a single connection summary
-void printConnectionSummary(ConnectionHashtableListNode *currentnode)
+void printConnectionSummary(ConnectionHashtableListNode *currentnode, int isTCP)
 {
   printf("%.6f ", formatTimeStamp(currentnode->entry->secsinceepoch_start,
     currentnode->entry->msecsincesec_start));
-  printf("dur ");
+  printf("%.6f ", formatTimeStampDuration(currentnode->entry->secsinceepoch_start,
+    currentnode->entry->msecsincesec_start, currentnode->entry->secsinceepoch_end,
+    currentnode->entry->msecsincesec_end));
   printIPAddress(currentnode->entry->orig_ip);
   printf(" %u ", currentnode->entry->orig_port);
   printIPAddress(currentnode->entry->resp_ip);
   printf(" %u ", currentnode->entry->resp_port);
-  printf("U/T ");
-  printf("o_to_r_packets ");
-  printf("o_to_r_app_bytes ");
-  printf("r_to_o_packets ");
-  printf("r_to__app_bytes ");
+  if(isTCP == TRUE)
+    printf("T");
+  else
+    printf("U");
+  printf(" %u ", currentnode->entry->o_to_r_packets);
+  printf("%d ", currentnode->entry->o_to_r_app_bytes);
+  printf("%u ", currentnode->entry->r_to_o_packets);
+  printf("%d ", currentnode->entry->r_to_o_app_bytes);
 }
 
 void printPacketTypes()
@@ -399,7 +404,8 @@ void analyzePacketTCPHeader()
     char *tcppacketdestip = formatIPAddress(tracepacketipheader.daddr);
     insertInConnectionHashtable(&tcppacketsourceip, &tcppacketdestip,
       tracepackettcpheader.th_sport, tracepackettcpheader.th_dport,
-      tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec);
+      tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec,
+      TRUE, calculateTCPAppDataVolume());
     if(flags[FLAG_PRINTPACKETS] == TRUE)
     {
       printPacketInfo(formatTimeStamp(
@@ -521,6 +527,14 @@ char *formatIPAddress(u_int32_t ipaddressint)
 double formatTimeStamp(int secsinceepoch, int msecsincesec)
 {
   return (double)secsinceepoch+formatAsTrailingDecimal(msecsincesec);
+}
+
+//returns duration between 2 timestamps formatted for output
+double formatTimeStampDuration(int secsinceepoch_a, int msecsincesec_a,
+  int secsinceepoch_b, int msecsincesec_b)
+{
+  return formatTimeStamp(secsinceepoch_b, msecsincesec_b)
+    -formatTimeStamp(secsinceepoch_a, msecsincesec_a);
 }
 
 //given an integer, formats as a decimal value trailing the decimal point

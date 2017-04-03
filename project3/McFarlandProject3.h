@@ -151,7 +151,7 @@ void printTCPPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   char destinationaddress[IPADDRESSSIZE]);
 void printUDPPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   char destinationaddress[IPADDRESSSIZE]);
-void printConnectionSummary(ConnectionHashtableListNode *currentnode);
+void printConnectionSummary(ConnectionHashtableListNode *currentnode, int isTCP);
 void printPacketTypes();
 void printTrafficMatrix();
 void printMACAddress(char *macaddress);
@@ -171,6 +171,8 @@ int calculateTCPAppDataVolume();
 int testStringEquality(char *string1, char *string2);
 char *formatIPAddress(u_int32_t ipaddressint);
 double formatTimeStamp(int secsinceepoch, int msecsinsec);
+double formatTimeStampDuration(int secsinceepoch_a, int msecsincesec_a,
+  int secsinceepoch_b, int msecsincesec_b);
 double formatAsTrailingDecimal(int integerdigits);
 void parseInput(int argc, char *argv[], char **tracefilename);
 char *parseInputArg(int inputargtoparse);

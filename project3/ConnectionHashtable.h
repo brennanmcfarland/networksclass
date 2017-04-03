@@ -22,6 +22,11 @@ typedef struct ConnectionHashtableListEntry
   int msecsincesec_start;
   int secsinceepoch_end;
   int msecsincesec_end;
+  int isTCP;
+  unsigned int o_to_r_packets;
+  int o_to_r_app_bytes;
+  unsigned int r_to_o_packets;
+  int r_to_o_app_bytes;
   //deprecated, remove these once it's all transferred over to the new stuff
   int count;
   int datavol;
@@ -49,13 +54,17 @@ ConnectionHashtableListNode *findInConnectionHashtable(char **originatoripaddres
 int ConnectionHashtableTestStringEquality(char *string1, char *string2);
 void initializeConnectionHashtableList(char **originatoripaddress,
   char **responderipaddress, unsigned int originatorport, unsigned int responderport,
-  int secsinceepoch_start, int msecsincesec_start);
+  int secsinceepoch, int msecsincesec, int isTCP, int app_data_vol);
 void initializeNewConnectionHashtableEntry(char **originatoripaddress,
   char **responderipaddress, unsigned int originatorport, unsigned int responderport,
-  int secsinceepoch_start, int msecsincesec_start, ConnectionHashtableListNode **newnode);
+  int secsinceepoch_start, int msecsincesec_start, int secsinceepoch_end,
+  int msecsincesec_end, int isTCP, int app_data_vol, ConnectionHashtableListNode **newnode);
 void insertInConnectionHashtable(char **originatoripaddress, char **responderipaddress,
-  unsigned int originatorport, unsigned int responderport, int secsinceepoch_start,
-  int msecsincesec_start);
+  unsigned int originatorport, unsigned int responderport, int secsinceepoch,
+  int msecsincesec, int isTCP, int app_data_vol);
+int testConnectionEquality(char **originatoripaddress, char **responderipaddress,
+  unsigned int originatorport, unsigned int responderport, int isTCP,
+  ConnectionHashtableListNode *currentbucketnodeptr);
 int compareTimeStamps(int secsinceepoch_a, int msecsincesec_a, int secsinceepoch_b,
   int msecsincesec_b);
 unsigned int ConnectionHashtableHashCode(char **originatoripaddress,
