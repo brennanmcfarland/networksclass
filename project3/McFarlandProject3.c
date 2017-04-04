@@ -249,6 +249,11 @@ void printRTT(ConnectionHashtableListNode *currentnode)
 {
   printTCPSourceDest(currentnode->entry->orig_ip, currentnode->entry->resp_ip,
     currentnode->entry->orig_port, currentnode->entry->resp_port);
+  //need to account for ? and -, also for rtt of responder
+  printf(" %.6f", formatTimeStampDuration(currentnode->entry->o_to_r_secsinceepoch_start,
+    currentnode->entry->o_to_r_msecsincesec_start,
+    currentnode->entry->o_to_r_secsinceepoch_end,
+    currentnode->entry->o_to_r_msecsincesec_end));
 }
 
 void printPacketTypes()
@@ -458,7 +463,7 @@ void analyzePacketTCPHeader()
     insertInConnectionHashtable(&tcppacketsourceip, &tcppacketdestip,
       tracepackettcpheader.th_sport, tracepackettcpheader.th_dport,
       tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec,
-      TRUE, calculateTCPAppDataVolume());
+      TRUE, tracepackettcpheader.th_seq, calculateTCPAppDataVolume());
     if(flags[FLAG_PRINTPACKETS] == TRUE)
     {
       printPacketInfo(formatTimeStamp(
@@ -486,7 +491,7 @@ void analyzePacketUDPHeader()
     insertInConnectionHashtable(&udppacketsourceip, &udppacketdestip,
       tracepacketudpheader.uh_sport, tracepacketudpheader.uh_dport,
       tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec,
-      FALSE, tracepacketudpheader.len-sizeof(struct udphdr));
+      FALSE, 0, tracepacketudpheader.len-sizeof(struct udphdr));
     if(flags[FLAG_PRINTPACKETS] == TRUE)
     {
       printPacketInfo(formatTimeStamp(

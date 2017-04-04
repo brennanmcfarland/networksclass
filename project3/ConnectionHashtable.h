@@ -27,6 +27,16 @@ typedef struct ConnectionHashtableListEntry
   int o_to_r_app_bytes;
   unsigned int r_to_o_packets;
   int r_to_o_app_bytes;
+  u_int16_t seqno;
+
+  int o_to_r_secsinceepoch_start;
+  int o_to_r_msecsincesec_start;
+  int o_to_r_secsinceepoch_end;
+  int o_to_r_msecsincesec_end;
+  int r_to_o_secsinceepoch_start;
+  int r_to_o_msecsincesec_start;
+  int r_to_o_secsinceepoch_end;
+  int r_to_o_msecsincesec_end;
   //deprecated, remove these once it's all transferred over to the new stuff
   int count;
   int datavol;
@@ -54,14 +64,23 @@ ConnectionHashtableListNode *findInConnectionHashtable(char **originatoripaddres
 int ConnectionHashtableTestStringEquality(char *string1, char *string2);
 void initializeConnectionHashtableList(char **originatoripaddress,
   char **responderipaddress, unsigned int originatorport, unsigned int responderport,
-  int secsinceepoch, int msecsincesec, int isTCP, int app_data_vol);
+  int secsinceepoch, int msecsincesec, int isTCP, int app_data_vol, u_int16_t seqno);
 void initializeNewConnectionHashtableEntry(char **originatoripaddress,
   char **responderipaddress, unsigned int originatorport, unsigned int responderport,
   int secsinceepoch_start, int msecsincesec_start, int secsinceepoch_end,
-  int msecsincesec_end, int isTCP, int app_data_vol, ConnectionHashtableListNode **newnode);
+  int msecsincesec_end, int isTCP, int app_data_vol, u_int16_t seqno,
+  ConnectionHashtableListNode **newnode);
+void initializeRTTTimestamps(int secsinceepoch_start, int msecsincesec_start,
+  int secsinceepoch_end, int msecsincesec_end, int app_data_vol,
+  ConnectionHashtableListNode **newnode);
+void updateOtoRStart(int secsinceepoch_start, int msecsincesec_start,
+  int secsinceepoch_end, int msecsincesec_end, int app_data_vol,
+  ConnectionHashtableListNode **currentnode);
+void updateOtoREnd(int secsinceepoch, int msecsincesec, u_int16_t seqno,
+  ConnectionHashtableListNode **currentnode);
 void insertInConnectionHashtable(char **originatoripaddress, char **responderipaddress,
   unsigned int originatorport, unsigned int responderport, int secsinceepoch,
-  int msecsincesec, int isTCP, int app_data_vol);
+  int msecsincesec, int isTCP, u_int16_t seqno, int app_data_vol);
 int testConnectionEquality(char **originatoripaddress, char **responderipaddress,
   unsigned int originatorport, unsigned int responderport, int isTCP,
   ConnectionHashtableListNode *currentbucketnodeptr);
