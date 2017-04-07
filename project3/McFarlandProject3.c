@@ -215,11 +215,11 @@ void printConnectionSummary(ConnectionHashtableListNode *currentnode, int isTCP)
   printf(" %u ", currentnode->entry->o_to_r_packets);
   printf("%d ", currentnode->entry->o_to_r_app_bytes);
   if(currentnode->entry->r_to_o_packets == 0)
-    printf("? ? ");
+    printf("? ?");
   else
   {
     printf("%u ", currentnode->entry->r_to_o_packets);
-    printf("%d ", currentnode->entry->r_to_o_app_bytes);
+    printf("%d", currentnode->entry->r_to_o_app_bytes);
   }
 }
 
@@ -238,7 +238,6 @@ void printRTTs()
       {
         if(currentnode->entry->isTCP == TRUE)
           printRTT(currentnode);
-        printf("\n");
       }while((currentnode = currentnode->next) != NULL);
     }
   }
@@ -247,17 +246,30 @@ void printRTTs()
 //prints a single RTT
 void printRTT(ConnectionHashtableListNode *currentnode)
 {
+  if(currentnode->entry->isTCP == FALSE)
+    return;
   printTCPSourceDest(currentnode->entry->orig_ip, currentnode->entry->resp_ip,
     currentnode->entry->orig_port, currentnode->entry->resp_port);
   //need to account for ? and -, also for rtt of responder
-  printf(" %.6f", formatTimeStampDuration(currentnode->entry->o_to_r_secsinceepoch_start,
-    currentnode->entry->o_to_r_msecsincesec_start,
-    currentnode->entry->o_to_r_secsinceepoch_end,
-    currentnode->entry->o_to_r_msecsincesec_end));
-  printf(" %.6f", formatTimeStampDuration(currentnode->entry->o_to_r_secsinceepoch_start,
-    currentnode->entry->r_to_o_msecsincesec_start,
-    currentnode->entry->r_to_o_secsinceepoch_end,
-    currentnode->entry->r_to_o_msecsincesec_end));
+  if(currentnode->entry->o_to_r_secsinceepoch_start == INVALIDINTTIME)
+    printf(" -");
+  else if(currentnode->entry->o_to_r_secsinceepoch_end == INVALIDINTTIME)
+    printf(" ?");
+  else
+    printf(" %.6f", formatTimeStampDuration(currentnode->entry->o_to_r_secsinceepoch_start,
+      currentnode->entry->o_to_r_msecsincesec_start,
+      currentnode->entry->o_to_r_secsinceepoch_end,
+      currentnode->entry->o_to_r_msecsincesec_end));
+  if(currentnode->entry->r_to_o_secsinceepoch_start == INVALIDINTTIME)
+    printf(" -");
+  else if(currentnode->entry->r_to_o_secsinceepoch_end == INVALIDINTTIME)
+    printf(" ?");
+  else
+    printf(" %.6f", formatTimeStampDuration(currentnode->entry->r_to_o_secsinceepoch_start,
+      currentnode->entry->r_to_o_msecsincesec_start,
+      currentnode->entry->r_to_o_secsinceepoch_end,
+      currentnode->entry->r_to_o_msecsincesec_end));
+  printf("\n");
 }
 
 void printPacketTypes()
@@ -495,7 +507,7 @@ void analyzePacketUDPHeader()
     insertInConnectionHashtable(&udppacketsourceip, &udppacketdestip,
       tracepacketudpheader.uh_sport, tracepacketudpheader.uh_dport,
       tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec,
-      FALSE, 0, 0, tracepacketudpheader.len-sizeof(struct udphdr));
+      FALSE, FALSE, FALSE, tracepacketudpheader.len-sizeof(struct udphdr));
     if(flags[FLAG_PRINTPACKETS] == TRUE)
     {
       printPacketInfo(formatTimeStamp(
@@ -603,17 +615,21 @@ double formatTimeStamp(int secsinceepoch, int msecsincesec)
 double formatTimeStampDuration(int secsinceepoch_a, int msecsincesec_a,
   int secsinceepoch_b, int msecsincesec_b)
 {
-  return formatTimeStamp(secsinceepoch_b, msecsincesec_b)
+  double duration = formatTimeStamp(secsinceepoch_b, msecsincesec_b)
     -formatTimeStamp(secsinceepoch_a, msecsincesec_a);
+  if(duration > DOUBLEINITIALIZER)
+    return duration;
+  else
+    return INVALIDDOUBLE*duration;
 }
 
 //given an integer, formats as a decimal value trailing the decimal point
-double formatAsTrailingDecimal(int integerdigits)
-{
-  double trailingdecimal = (double)integerdigits;
-  trailingdecimal = trailingdecimal/TRAILINGDECIMALCONVERTER;
-  return trailingdecimal;
-}
+//double formatAsTrailingDecimal(int integerdigits)
+//{
+//  double trailingdecimal = (double)integerdigits;
+//  trailingdecimal = trailingdecimal/TRAILINGDECIMALCONVERTER;
+//  return trailingdecimal;
+//}
 
 //handles parsing of all user input arguments, sets flags and vars appropriately
 void parseInput(int argc, char *argv[], char **tracefilename)

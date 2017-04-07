@@ -13,6 +13,7 @@
 #include </usr/include/netinet/udp.h> //for the udphdr struct
 #include </usr/include/netinet/tcp.h> //for the tcphdr struct
 #include "ConnectionHashtable.h"
+#include "McFarlandNetworks.h"
 
 
 ConnectionHashtable connectionhashtable;
@@ -278,14 +279,14 @@ void insertInConnectionHashtable(char **originatoripaddress, char **responderipa
       }
       if(compareTimeStamps(secsinceepoch, msecsincesec,
         currentbucketnodeptr->entry->secsinceepoch_start,
-        currentbucketnodeptr->entry->msecsincesec_start) == FALSE)
+        currentbucketnodeptr->entry->msecsincesec_start) == TRUE)
       {
         currentbucketnodeptr->entry->secsinceepoch_start = secsinceepoch;
         currentbucketnodeptr->entry->msecsincesec_start = msecsincesec;
       }
       if(compareTimeStamps(secsinceepoch, msecsincesec,
         currentbucketnodeptr->entry->secsinceepoch_end,
-        currentbucketnodeptr->entry->msecsincesec_end) == TRUE)
+        currentbucketnodeptr->entry->msecsincesec_end) == FALSE)
       {
         currentbucketnodeptr->entry->secsinceepoch_end = secsinceepoch;
         currentbucketnodeptr->entry->msecsincesec_end = msecsincesec;
@@ -327,10 +328,19 @@ int testConnectionEquality(char **originatoripaddress, char **responderipaddress
 int compareTimeStamps(int secsinceepoch_a, int msecsincesec_a, int secsinceepoch_b,
   int msecsincesec_b)
 {
-  if((double)secsinceepoch_a+(double)msecsincesec_a/1000. <
-    (double)secsinceepoch_b+(double)msecsincesec_b/1000.)
+  //printf("%f\n", (double)msecsincesec_a);
+  if((double)secsinceepoch_a+formatAsTrailingDecimal(msecsincesec_a) <
+    (double)secsinceepoch_b+formatAsTrailingDecimal(msecsincesec_b))
     return TRUE;
   return FALSE;
+}
+
+//given an integer, formats as a decimal value trailing the decimal point
+double formatAsTrailingDecimal(int integerdigits)
+{
+  double trailingdecimal = (double)integerdigits;
+  trailingdecimal = trailingdecimal/TRAILINGDECIMALCONVERTER;
+  return trailingdecimal;
 }
 
 unsigned int ConnectionHashtableHashCode(char **originatoripaddress,

@@ -97,6 +97,7 @@ int testConnectionEquality(char **originatoripaddress, char **responderipaddress
   ConnectionHashtableListNode *currentbucketnodeptr);
 int compareTimeStamps(int secsinceepoch_a, int msecsincesec_a, int secsinceepoch_b,
   int msecsincesec_b);
+double formatAsTrailingDecimal(int integerdigits);
 unsigned int ConnectionHashtableHashCode(char **originatoripaddress,
   char **responderipaddress, unsigned int originatorport, unsigned int responderport);
 void initializeConnectionHashtable();
