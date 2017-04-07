@@ -23,11 +23,16 @@ typedef struct ConnectionHashtableListEntry
   int secsinceepoch_end;
   int msecsincesec_end;
   int isTCP;
+
   unsigned int o_to_r_packets;
   int o_to_r_app_bytes;
   unsigned int r_to_o_packets;
   int r_to_o_app_bytes;
-  u_int16_t seqno;
+
+  u_int16_t o_to_r_seqno;
+  u_int32_t o_to_r_ack;
+  u_int16_t r_to_o_seqno;
+  u_int32_t r_to_o_ack;
 
   int o_to_r_secsinceepoch_start;
   int o_to_r_msecsincesec_start;
@@ -64,23 +69,29 @@ ConnectionHashtableListNode *findInConnectionHashtable(char **originatoripaddres
 int ConnectionHashtableTestStringEquality(char *string1, char *string2);
 void initializeConnectionHashtableList(char **originatoripaddress,
   char **responderipaddress, unsigned int originatorport, unsigned int responderport,
-  int secsinceepoch, int msecsincesec, int isTCP, int app_data_vol, u_int16_t seqno);
+  int secsinceepoch, int msecsincesec, int isTCP, int app_data_vol, u_int16_t o_to_r_seqno,
+  u_int32_t o_to_r_ack);
 void initializeNewConnectionHashtableEntry(char **originatoripaddress,
   char **responderipaddress, unsigned int originatorport, unsigned int responderport,
   int secsinceepoch_start, int msecsincesec_start, int secsinceepoch_end,
-  int msecsincesec_end, int isTCP, int app_data_vol, u_int16_t seqno,
+  int msecsincesec_end, int isTCP, int app_data_vol, u_int16_t o_to_r_seqno, u_int32_t o_to_r_ack,
   ConnectionHashtableListNode **newnode);
 void initializeRTTTimestamps(int secsinceepoch_start, int msecsincesec_start,
-  int secsinceepoch_end, int msecsincesec_end, int app_data_vol,
-  ConnectionHashtableListNode **newnode);
+  int secsinceepoch_end, int msecsincesec_end, int app_data_vol, u_int16_t seqno,
+  u_int32_t ackno, ConnectionHashtableListNode **newnode);
 void updateOtoRStart(int secsinceepoch_start, int msecsincesec_start,
-  int secsinceepoch_end, int msecsincesec_end, int app_data_vol,
+  int secsinceepoch_end, int msecsincesec_end, int app_data_vol, u_int16_t seqno,
+  u_int32_t ackno, ConnectionHashtableListNode **currentnode);
+void updateRtoOStart(int secsinceepoch_start, int msecsincesec_start,
+  int secsinceepoch_end, int msecsincesec_end, int app_data_vol, u_int16_t seqno,
+  u_int32_t ackno, ConnectionHashtableListNode **currentnode);
+void updateOtoREnd(int secsinceepoch, int msecsincesec, u_int16_t seqno, u_int32_t ack_seqno,
   ConnectionHashtableListNode **currentnode);
-void updateOtoREnd(int secsinceepoch, int msecsincesec, u_int16_t seqno,
+void updateRtoOEnd(int secsinceepoch, int msecsincesec, u_int16_t seqno, u_int32_t ack_seqno,
   ConnectionHashtableListNode **currentnode);
 void insertInConnectionHashtable(char **originatoripaddress, char **responderipaddress,
   unsigned int originatorport, unsigned int responderport, int secsinceepoch,
-  int msecsincesec, int isTCP, u_int16_t seqno, int app_data_vol);
+  int msecsincesec, int isTCP, u_int16_t o_to_r_seqno, u_int32_t o_to_r_ack, int app_data_vol);
 int testConnectionEquality(char **originatoripaddress, char **responderipaddress,
   unsigned int originatorport, unsigned int responderport, int isTCP,
   ConnectionHashtableListNode *currentbucketnodeptr);

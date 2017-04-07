@@ -84,7 +84,8 @@ int ConnectionHashtableTestStringEquality(char *string1, char *string2)
 
 void initializeConnectionHashtableList(char **originatoripaddress,
   char **responderipaddress, unsigned int originatorport, unsigned int responderport,
-  int secsinceepoch, int msecsincesec, int isTCP, int app_data_vol, u_int16_t seqno)
+  int secsinceepoch, int msecsincesec, int isTCP, int app_data_vol, u_int16_t o_to_r_seqno,
+  u_int32_t o_to_r_ack)
 {
   unsigned int connectionlistfirstkey = ConnectionHashtableHashCode(
     originatoripaddress, responderipaddress, originatorport, responderport)
@@ -95,7 +96,7 @@ void initializeConnectionHashtableList(char **originatoripaddress,
   headbuffer = &(connectionhashtable.tableentrylists[connectionlistfirstkey].head);
   initializeNewConnectionHashtableEntry(originatoripaddress, responderipaddress,
     originatorport, responderport, secsinceepoch, msecsincesec,
-    secsinceepoch, msecsincesec, isTCP, app_data_vol, seqno, headbuffer);
+    secsinceepoch, msecsincesec, isTCP, app_data_vol, o_to_r_seqno, o_to_r_ack, headbuffer);
 }
 /*
 void initializeTrafficMatrixList(int listfirstentryipaddresskey,
@@ -112,7 +113,7 @@ void initializeTrafficMatrixList(int listfirstentryipaddresskey,
 void initializeNewConnectionHashtableEntry(char **originatoripaddress,
   char **responderipaddress, unsigned int originatorport, unsigned int responderport,
   int secsinceepoch_start, int msecsincesec_start, int secsinceepoch_end,
-  int msecsincesec_end, int isTCP, int app_data_vol, u_int16_t seqno,
+  int msecsincesec_end, int isTCP, int app_data_vol, u_int16_t o_to_r_seqno, u_int32_t o_to_r_ack,
   ConnectionHashtableListNode **newnode)
 {
   *newnode = (ConnectionHashtableListNode *)ConnectionHashtableSafeMalloc(sizeof(ConnectionHashtableListNode));
@@ -130,16 +131,17 @@ void initializeNewConnectionHashtableEntry(char **originatoripaddress,
   (*newnode)->entry->o_to_r_packets = 1;
   (*newnode)->entry->o_to_r_app_bytes = app_data_vol;
   (*newnode)->entry->r_to_o_packets = 0;
-  (*newnode)->entry->seqno = seqno;
+  (*newnode)->entry->o_to_r_seqno = o_to_r_seqno;
+  (*newnode)->entry->o_to_r_ack = o_to_r_ack;
   (*newnode)->entry->count = 1;
   (*newnode)->next = NULL;
   initializeRTTTimestamps(secsinceepoch_start, msecsincesec_start, secsinceepoch_end,
-    msecsincesec_end, app_data_vol, newnode);
+    msecsincesec_end, app_data_vol, o_to_r_seqno, o_to_r_ack, newnode);
 }
 
 void initializeRTTTimestamps(int secsinceepoch_start, int msecsincesec_start,
-  int secsinceepoch_end, int msecsincesec_end, int app_data_vol,
-  ConnectionHashtableListNode **newnode)
+  int secsinceepoch_end, int msecsincesec_end, int app_data_vol, u_int16_t seqno,
+  u_int32_t ackno, ConnectionHashtableListNode **newnode)
 {
   (*newnode)->entry->o_to_r_secsinceepoch_start = -1;
   (*newnode)->entry->o_to_r_msecsincesec_start = -1;
@@ -150,15 +152,15 @@ void initializeRTTTimestamps(int secsinceepoch_start, int msecsincesec_start,
   (*newnode)->entry->r_to_o_secsinceepoch_end = -1;
   (*newnode)->entry->r_to_o_msecsincesec_end = -1;
   updateOtoRStart(secsinceepoch_start, msecsincesec_start, secsinceepoch_end,
-    msecsincesec_end, app_data_vol, newnode);
+    msecsincesec_end, app_data_vol, seqno, ackno, newnode);
 }
 
 //check if timestamps for calculating rtt need to be updated with new information
 void updateOtoRStart(int secsinceepoch_start, int msecsincesec_start,
-  int secsinceepoch_end, int msecsincesec_end, int app_data_vol,
-  ConnectionHashtableListNode **currentnode)
+  int secsinceepoch_end, int msecsincesec_end, int app_data_vol, u_int16_t seqno,
+  u_int32_t ackno, ConnectionHashtableListNode **currentnode)
 {
-  if(app_data_vol > 0)
+  if(app_data_vol > 0 && (*currentnode)->entry->o_to_r_secsinceepoch_start == -1)
   {
     if(compareTimeStamps(secsinceepoch_start, msecsincesec_start,
       (*currentnode)->entry->o_to_r_secsinceepoch_start,
@@ -166,19 +168,58 @@ void updateOtoRStart(int secsinceepoch_start, int msecsincesec_start,
     {
       (*currentnode)->entry->o_to_r_secsinceepoch_start = secsinceepoch_start;
       (*currentnode)->entry->o_to_r_msecsincesec_start = msecsincesec_start;
+      (*currentnode)->entry->o_to_r_seqno = seqno;
+      (*currentnode)->entry->o_to_r_ack = ackno;
+    }
+  }
+}
+
+//check if timestamps for calculating rtt need to be updated with new information
+void updateRtoOStart(int secsinceepoch_start, int msecsincesec_start,
+  int secsinceepoch_end, int msecsincesec_end, int app_data_vol, u_int16_t seqno,
+  u_int32_t ackno, ConnectionHashtableListNode **currentnode)
+{
+  if(app_data_vol > 0 && (*currentnode)->entry->r_to_o_secsinceepoch_start == -1)
+  {
+    if(compareTimeStamps(secsinceepoch_start, msecsincesec_start,
+      (*currentnode)->entry->r_to_o_secsinceepoch_start,
+      (*currentnode)->entry->r_to_o_msecsincesec_start) == FALSE)
+    {
+      (*currentnode)->entry->r_to_o_secsinceepoch_start = secsinceepoch_start;
+      (*currentnode)->entry->r_to_o_msecsincesec_start = msecsincesec_start;
+      (*currentnode)->entry->r_to_o_seqno = seqno;
+      (*currentnode)->entry->r_to_o_ack = ackno;
     }
   }
 }
 
 //check if this is the first sequence no >= the desired one for rtt
-void updateOtoREnd(int secsinceepoch, int msecsincesec, u_int16_t seqno,
+void updateOtoREnd(int secsinceepoch, int msecsincesec, u_int16_t seqno, u_int32_t ack_seqno,
   ConnectionHashtableListNode **currentnode)
 {
-  //check if found already, ie if r_to_o end timestamp fields are -1
-  if((*currentnode)->entry->r_to_o_secsinceepoch_end == -1)
+  //check if found already, ie if o_to_r end timestamp fields are -1
+  if((*currentnode)->entry->o_to_r_secsinceepoch_start != -1
+    && (*currentnode)->entry->o_to_r_secsinceepoch_end == -1)
   {
     //if not, check if the new sequence # is >= to the old one, if so update timestamp
-    if((*currentnode)->entry->seqno <= seqno)
+    if((*currentnode)->entry->o_to_r_seqno <= ack_seqno)
+    {
+      (*currentnode)->entry->o_to_r_secsinceepoch_end = secsinceepoch;
+      (*currentnode)->entry->o_to_r_msecsincesec_end = msecsincesec;
+    }
+  }
+}
+
+//check if this is the first sequence no >= the desired one for rtt
+void updateRtoOEnd(int secsinceepoch, int msecsincesec, u_int16_t seqno, u_int32_t ack_seqno,
+  ConnectionHashtableListNode **currentnode)
+{
+  //check if found already, ie if o_to_r end timestamp fields are -1
+  if((*currentnode)->entry->r_to_o_secsinceepoch_start != -1
+    && (*currentnode)->entry->r_to_o_secsinceepoch_end == -1)
+  {
+    //if not, check if the new sequence # is >= to the old one, if so update timestamp
+    if((*currentnode)->entry->r_to_o_seqno <= ack_seqno)
     {
       (*currentnode)->entry->r_to_o_secsinceepoch_end = secsinceepoch;
       (*currentnode)->entry->r_to_o_msecsincesec_end = msecsincesec;
@@ -188,7 +229,7 @@ void updateOtoREnd(int secsinceepoch, int msecsincesec, u_int16_t seqno,
 
 void insertInConnectionHashtable(char **originatoripaddress, char **responderipaddress,
   unsigned int originatorport, unsigned int responderport, int secsinceepoch,
-  int msecsincesec, int isTCP, u_int16_t seqno, int app_data_vol)
+  int msecsincesec, int isTCP, u_int16_t seqno, u_int32_t ack, int app_data_vol)
 {
   unsigned int newconnectiontableentrykey = ConnectionHashtableHashCode(
     originatoripaddress, responderipaddress, originatorport, responderport)
@@ -199,7 +240,7 @@ void insertInConnectionHashtable(char **originatoripaddress, char **responderipa
   {
     initializeConnectionHashtableList(originatoripaddress, responderipaddress,
       originatorport, responderport, secsinceepoch, msecsincesec, isTCP, app_data_vol,
-      seqno);
+      seqno, ack);
     connectionhashtablesize++;
     //printf("inserting in new bucket %d\n", newconnectiontableentrykey);
   }
@@ -219,6 +260,10 @@ void insertInConnectionHashtable(char **originatoripaddress, char **responderipa
       if(testConnectionEquality(originatoripaddress, responderipaddress,
         originatorport, responderport, isTCP, currentbucketnodeptr) == TRUE)
       {
+        updateOtoRStart(secsinceepoch, msecsincesec, secsinceepoch, msecsincesec,
+          app_data_vol, seqno, ack, (ConnectionHashtableListNode **)&currentbucketnodeptr);
+        updateRtoOEnd(secsinceepoch, msecsincesec, seqno, ack,
+          (ConnectionHashtableListNode **)&currentbucketnodeptr);
         currentbucketnodeptr->entry->o_to_r_packets++;
         currentbucketnodeptr->entry->o_to_r_app_bytes += app_data_vol;
       }
@@ -226,6 +271,10 @@ void insertInConnectionHashtable(char **originatoripaddress, char **responderipa
       {
         currentbucketnodeptr->entry->r_to_o_packets++;
         currentbucketnodeptr->entry->r_to_o_app_bytes += app_data_vol;
+        updateOtoREnd(secsinceepoch, msecsincesec, seqno, ack,
+          (ConnectionHashtableListNode **)&currentbucketnodeptr);
+        updateRtoOStart(secsinceepoch, msecsincesec, secsinceepoch, msecsincesec,
+          app_data_vol, seqno, ack, (ConnectionHashtableListNode **)&currentbucketnodeptr);
       }
       if(compareTimeStamps(secsinceepoch, msecsincesec,
         currentbucketnodeptr->entry->secsinceepoch_start,
@@ -250,9 +299,9 @@ void insertInConnectionHashtable(char **originatoripaddress, char **responderipa
       currentbucketnodeptrbuffer = &(currentbucketnodeptr->next);
       initializeNewConnectionHashtableEntry(originatoripaddress, responderipaddress,
         originatorport, responderport, secsinceepoch, msecsincesec, secsinceepoch,
-        msecsincesec, isTCP, app_data_vol, seqno, currentbucketnodeptrbuffer);
+        msecsincesec, isTCP, app_data_vol, seqno, ack, currentbucketnodeptrbuffer);
       connectionhashtablesize++;
-      updateOtoREnd(secsinceepoch, msecsincesec, seqno, currentbucketnodeptrbuffer);
+      //updateOtoREnd(secsinceepoch, msecsincesec, seqno, ack_seqno, currentbucketnodeptrbuffer);
       //printf("inserting in new node in bucket %d\n", newconnectiontableentrykey);
     }
   }
@@ -279,7 +328,7 @@ int compareTimeStamps(int secsinceepoch_a, int msecsincesec_a, int secsinceepoch
   int msecsincesec_b)
 {
   if((double)secsinceepoch_a+(double)msecsincesec_a/1000. <
-    (double)secsinceepoch_b+(double)msecsincesec_b)
+    (double)secsinceepoch_b+(double)msecsincesec_b/1000.)
     return TRUE;
   return FALSE;
 }

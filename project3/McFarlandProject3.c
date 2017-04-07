@@ -254,6 +254,10 @@ void printRTT(ConnectionHashtableListNode *currentnode)
     currentnode->entry->o_to_r_msecsincesec_start,
     currentnode->entry->o_to_r_secsinceepoch_end,
     currentnode->entry->o_to_r_msecsincesec_end));
+  printf(" %.6f", formatTimeStampDuration(currentnode->entry->o_to_r_secsinceepoch_start,
+    currentnode->entry->r_to_o_msecsincesec_start,
+    currentnode->entry->r_to_o_secsinceepoch_end,
+    currentnode->entry->r_to_o_msecsincesec_end));
 }
 
 void printPacketTypes()
@@ -463,7 +467,7 @@ void analyzePacketTCPHeader()
     insertInConnectionHashtable(&tcppacketsourceip, &tcppacketdestip,
       tracepackettcpheader.th_sport, tracepackettcpheader.th_dport,
       tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec,
-      TRUE, tracepackettcpheader.th_seq, calculateTCPAppDataVolume());
+      TRUE, tracepackettcpheader.seq, tracepackettcpheader.ack_seq, calculateTCPAppDataVolume());
     if(flags[FLAG_PRINTPACKETS] == TRUE)
     {
       printPacketInfo(formatTimeStamp(
@@ -491,7 +495,7 @@ void analyzePacketUDPHeader()
     insertInConnectionHashtable(&udppacketsourceip, &udppacketdestip,
       tracepacketudpheader.uh_sport, tracepacketudpheader.uh_dport,
       tracepacketmetainfo.meta_secsinceepoch, tracepacketmetainfo.meta_msecsincesec,
-      FALSE, 0, tracepacketudpheader.len-sizeof(struct udphdr));
+      FALSE, 0, 0, tracepacketudpheader.len-sizeof(struct udphdr));
     if(flags[FLAG_PRINTPACKETS] == TRUE)
     {
       printPacketInfo(formatTimeStamp(
@@ -537,6 +541,8 @@ void tcphdrToHostOrder(struct tcphdr *packettcpheader)
   packettcpheader->th_sport = ntohs(packettcpheader->th_sport);
   packettcpheader->th_dport = ntohs(packettcpheader->th_dport);
   //packettcpheader->th_off = ntohs(packettcpheader->th_off);
+  packettcpheader->th_seq = ntohs(packettcpheader->th_seq);
+  packettcpheader->th_ack = ntohs(packettcpheader->th_seq);
   packettcpheader->seq = ntohl(packettcpheader->seq);
   packettcpheader->ack_seq = ntohl(packettcpheader->ack_seq);
 }
