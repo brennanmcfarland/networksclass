@@ -1,0 +1,5 @@
+window size as indication of network traffic?
+YES - number of 3 dup acks (packet dropped) as indication of network reliability?
+number of resets as indication of network reliability?
+calculate RTO for each connection?
+YES - calculate network data rate from window size? (would be neat to graph)
