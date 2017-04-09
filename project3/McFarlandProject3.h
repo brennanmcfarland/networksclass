@@ -1,19 +1,20 @@
 /*
   Brennan McFarland
   bfm21
-  McFarlandProject2.h
-  3/3/17
-  The header for McFarlandProject2.c
+  McFarlandProject3.h
+  4/26/17
+  The header for McFarlandProject3.c
 */
 #define TRUE 1
 #define FALSE 0
 
-#define NUMFLAGS 7
+#define NUMFLAGS 6
 #define FLAG_TRACEFILENAME 0
 #define FLAG_PRINTPACKETS 1
 #define FLAG_PRINTCONNECTIONSUMMARIES 2
 #define FLAG_PRINTROUNDTRIPTIMES 3
 #define FLAG_VERBOSEOUTPUT 4
+#define FLAG_PRINTFASTRETRANSMITS 5
 
 #define MACADDRESSSIZE 6
 #define IPADDRESSSIZE 4
@@ -156,6 +157,8 @@ void printUDPPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
 void printConnectionSummary(ConnectionHashtableListNode *currentnode, int isTCP);
 void printRTTs();
 void printRTT(ConnectionHashtableListNode *currentnode);
+void printFastRetransmits();
+void printFastRetransmit(ConnectionHashtableListNode *currentnode);
 void printPacketTypes();
 void printTrafficMatrix();
 void printMACAddress(char *macaddress);

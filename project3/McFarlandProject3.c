@@ -1,15 +1,16 @@
 /*
   Brennan McFarland
   bfm21
-  McFarlandProject2.h
-  3/3/17
+  McFarlandProject3.h
+  4/26/17
   Given an packet trace file, analyzes it for information about ethernet,
-  ip properties, prints aggregated analysis of all packets to output,
-  -s prints trace summary
-  -e prints ethernet headers
-  -i prints ip headers
-  -t prints packet types
-  -m prints traffic matrix
+  ip, transport layer properties, prints aggregated analysis of all packets to
+  output,
+  -p prints packet info
+  -s prints connection summaries
+  -t prints rtts
+  -f prints fast retransmits
+
 */
 
 #include <unistd.h> //for getopt and file operations
@@ -251,24 +252,54 @@ void printRTT(ConnectionHashtableListNode *currentnode)
   printTCPSourceDest(currentnode->entry->orig_ip, currentnode->entry->resp_ip,
     currentnode->entry->orig_port, currentnode->entry->resp_port);
   //need to account for ? and -, also for rtt of responder
-  if(currentnode->entry->o_to_r_secsinceepoch_start == INVALIDINTTIME)
+  if(currentnode->entry->o_to_r_secsinceepoch_start == INVALIDINT)
     printf(" -");
-  else if(currentnode->entry->o_to_r_secsinceepoch_end == INVALIDINTTIME)
+  else if(currentnode->entry->o_to_r_secsinceepoch_end == INVALIDINT)
     printf(" ?");
   else
     printf(" %.6f", formatTimeStampDuration(currentnode->entry->o_to_r_secsinceepoch_start,
       currentnode->entry->o_to_r_msecsincesec_start,
       currentnode->entry->o_to_r_secsinceepoch_end,
       currentnode->entry->o_to_r_msecsincesec_end));
-  if(currentnode->entry->r_to_o_secsinceepoch_start == INVALIDINTTIME)
+  if(currentnode->entry->r_to_o_secsinceepoch_start == INVALIDINT)
     printf(" -");
-  else if(currentnode->entry->r_to_o_secsinceepoch_end == INVALIDINTTIME)
+  else if(currentnode->entry->r_to_o_secsinceepoch_end == INVALIDINT)
     printf(" ?");
   else
     printf(" %.6f", formatTimeStampDuration(currentnode->entry->r_to_o_secsinceepoch_start,
       currentnode->entry->r_to_o_msecsincesec_start,
       currentnode->entry->r_to_o_secsinceepoch_end,
       currentnode->entry->r_to_o_msecsincesec_end));
+  printf("\n");
+}
+
+//prints the number of fast retransmits stored in the connection hashtable
+void printFastRetransmits()
+{
+  int i;
+  for(i=INTINITIALIZER; i<connectionhashtablecapacity; i++)
+  {
+    ConnectionHashtableListNode *currentnode = connectionhashtable.tableentrylists[i].head;
+    if(currentnode != NULL)
+    {
+      do
+      {
+        if(currentnode->entry->isTCP == TRUE)
+          printFastRetransmit(currentnode);
+      }while((currentnode = currentnode->next) != NULL);
+    }
+  }
+}
+
+//prints a single set of fast retransmits for a connection
+void printFastRetransmit(ConnectionHashtableListNode *currentnode)
+{
+  if(currentnode->entry->isTCP == FALSE)
+    return;
+  printTCPSourceDest(currentnode->entry->orig_ip, currentnode->entry->resp_ip,
+    currentnode->entry->orig_port, currentnode->entry->resp_port);
+  printf(" %u", currentnode->entry->o_to_r_fastretransmits);
+  printf(" %u", currentnode->entry->r_to_o_fastretransmits);
   printf("\n");
 }
 
@@ -392,6 +423,8 @@ void analyzePacketTrace()
     printConnectionSummaries();
   if(flags[FLAG_PRINTROUNDTRIPTIMES] == TRUE)
     printRTTs();
+  if(flags[FLAG_PRINTFASTRETRANSMITS] == TRUE)
+    printFastRetransmits();
 }
 
 //analyze a single ethernet packet header, FALSE if not truncated/successful
@@ -639,7 +672,7 @@ void parseInput(int argc, char *argv[], char **tracefilename)
     flags[i] = FALSE;
   int input;
   //read input args into variables
-  while((input = getopt(argc, argv, "pstvr:")) != FINISHED)
+  while((input = getopt(argc, argv, "pstvfr:")) != FINISHED)
   {
     int prevtracefilenameset = flags[FLAG_TRACEFILENAME];
     char *option = parseInputArg(input);
@@ -674,6 +707,9 @@ char *parseInputArg(int inputargtoparse)
       break;
     case 't':
       flags[FLAG_PRINTROUNDTRIPTIMES] = TRUE;
+      break;
+    case 'f':
+      flags[FLAG_PRINTFASTRETRANSMITS] = TRUE;
       break;
     case 'v':
       flags[FLAG_VERBOSEOUTPUT] = TRUE;
@@ -740,7 +776,7 @@ int main(int argc, char *argv[])
   parseInput(argc, argv, &tracefilename);
 
   if(flags[FLAG_PRINTPACKETS]+flags[FLAG_PRINTCONNECTIONSUMMARIES]+
-    flags[FLAG_PRINTROUNDTRIPTIMES] != SINGLEARGCHECK)
+    flags[FLAG_PRINTROUNDTRIPTIMES]+flags[FLAG_PRINTFASTRETRANSMITS] != SINGLEARGCHECK)
   {
     printf("Error: must specify one and only one option!\n");
     return EXIT_ERRORCODE;

@@ -2,8 +2,8 @@
   Brennan McFarland
   bfm21
   ConnectionHashtable.c
-  3/3/17
-  a hashtable for an ip trace file traffic matrix
+  4/26/17
+  a hashtable for an transport layer connections
 */
 
 #include <stdlib.h>
@@ -129,12 +129,19 @@ void initializeNewConnectionHashtableEntry(char **originatoripaddress,
   (*newnode)->entry->secsinceepoch_end = secsinceepoch_end;
   (*newnode)->entry->msecsincesec_end = msecsincesec_end;
   (*newnode)->entry->isTCP = isTCP;
-  (*newnode)->entry->o_to_r_packets = 1;
+  initializePrevAcks(newnode);
+  (*newnode)->entry->o_to_r_packets = OFFSETVALUE;
   (*newnode)->entry->o_to_r_app_bytes = app_data_vol;
-  (*newnode)->entry->r_to_o_packets = 0;
+  (*newnode)->entry->r_to_o_packets = INTINITIALIZER;
+  (*newnode)->entry->r_to_o_app_bytes = INTINITIALIZER;
   (*newnode)->entry->o_to_r_seqno = o_to_r_seqno;
   (*newnode)->entry->o_to_r_ack = o_to_r_ack;
-  (*newnode)->entry->count = 1;
+  updateOtoRPrevAcks(newnode, o_to_r_ack);
+  (*newnode)->entry->r_to_o_seqno = INVALIDINT;
+  (*newnode)->entry->r_to_o_ack = INVALIDINT;
+  (*newnode)->entry->o_to_r_fastretransmits = INTINITIALIZER;
+  (*newnode)->entry->r_to_o_fastretransmits = INTINITIALIZER;
+  (*newnode)->entry->count = OFFSETVALUE;
   (*newnode)->next = NULL;
   initializeRTTTimestamps(secsinceepoch_start, msecsincesec_start, secsinceepoch_end,
     msecsincesec_end, app_data_vol, o_to_r_seqno, o_to_r_ack, newnode);
@@ -144,16 +151,26 @@ void initializeRTTTimestamps(int secsinceepoch_start, int msecsincesec_start,
   int secsinceepoch_end, int msecsincesec_end, int app_data_vol, u_int16_t seqno,
   u_int32_t ackno, ConnectionHashtableListNode **newnode)
 {
-  (*newnode)->entry->o_to_r_secsinceepoch_start = -1;
-  (*newnode)->entry->o_to_r_msecsincesec_start = -1;
-  (*newnode)->entry->o_to_r_secsinceepoch_end = -1;
-  (*newnode)->entry->o_to_r_msecsincesec_end = -1;
-  (*newnode)->entry->r_to_o_secsinceepoch_start = -1;
-  (*newnode)->entry->r_to_o_msecsincesec_start = -1;
-  (*newnode)->entry->r_to_o_secsinceepoch_end = -1;
-  (*newnode)->entry->r_to_o_msecsincesec_end = -1;
+  (*newnode)->entry->o_to_r_secsinceepoch_start = INVALIDINT;
+  (*newnode)->entry->o_to_r_msecsincesec_start = INVALIDINT;
+  (*newnode)->entry->o_to_r_secsinceepoch_end = INVALIDINT;
+  (*newnode)->entry->o_to_r_msecsincesec_end = INVALIDINT;
+  (*newnode)->entry->r_to_o_secsinceepoch_start = INVALIDINT;
+  (*newnode)->entry->r_to_o_msecsincesec_start = INVALIDINT;
+  (*newnode)->entry->r_to_o_secsinceepoch_end = INVALIDINT;
+  (*newnode)->entry->r_to_o_msecsincesec_end = INVALIDINT;
   updateOtoRStart(secsinceepoch_start, msecsincesec_start, secsinceepoch_end,
     msecsincesec_end, app_data_vol, seqno, ackno, newnode);
+}
+
+void initializePrevAcks(ConnectionHashtableListNode **newnode)
+{
+  int i;
+  for(i=0; i<PREVACKSSIZE; i++)
+  {
+    (*newnode)->entry->o_to_r_prevacks[i] = INVALIDINT;
+    (*newnode)->entry->r_to_o_prevacks[i] = INVALIDINT;
+  }
 }
 
 //check if timestamps for calculating rtt need to be updated with new information
@@ -161,7 +178,7 @@ void updateOtoRStart(int secsinceepoch_start, int msecsincesec_start,
   int secsinceepoch_end, int msecsincesec_end, int app_data_vol, u_int16_t seqno,
   u_int32_t ackno, ConnectionHashtableListNode **currentnode)
 {
-  if(app_data_vol > 0 && (*currentnode)->entry->o_to_r_secsinceepoch_start == -1)
+  if(app_data_vol > INTINITIALIZER && (*currentnode)->entry->o_to_r_secsinceepoch_start == INVALIDINT)
   {
     if(compareTimeStamps(secsinceepoch_start, msecsincesec_start,
       (*currentnode)->entry->o_to_r_secsinceepoch_start,
@@ -180,7 +197,7 @@ void updateRtoOStart(int secsinceepoch_start, int msecsincesec_start,
   int secsinceepoch_end, int msecsincesec_end, int app_data_vol, u_int16_t seqno,
   u_int32_t ackno, ConnectionHashtableListNode **currentnode)
 {
-  if(app_data_vol > 0 && (*currentnode)->entry->r_to_o_secsinceepoch_start == -1)
+  if(app_data_vol > INTINITIALIZER && (*currentnode)->entry->r_to_o_secsinceepoch_start == INVALIDINT)
   {
     if(compareTimeStamps(secsinceepoch_start, msecsincesec_start,
       (*currentnode)->entry->r_to_o_secsinceepoch_start,
@@ -198,9 +215,9 @@ void updateRtoOStart(int secsinceepoch_start, int msecsincesec_start,
 void updateOtoREnd(int secsinceepoch, int msecsincesec, u_int16_t seqno, u_int32_t ack_seqno,
   ConnectionHashtableListNode **currentnode)
 {
-  //check if found already, ie if o_to_r end timestamp fields are -1
-  if((*currentnode)->entry->o_to_r_secsinceepoch_start != -1
-    && (*currentnode)->entry->o_to_r_secsinceepoch_end == -1)
+  //check if found already, ie if o_to_r end timestamp fields are INVALIDINT
+  if((*currentnode)->entry->o_to_r_secsinceepoch_start != INVALIDINT
+    && (*currentnode)->entry->o_to_r_secsinceepoch_end == INVALIDINT)
   {
     //if not, check if the new sequence # is >= to the old one, if so update timestamp
     if((*currentnode)->entry->o_to_r_seqno <= ack_seqno)
@@ -215,9 +232,9 @@ void updateOtoREnd(int secsinceepoch, int msecsincesec, u_int16_t seqno, u_int32
 void updateRtoOEnd(int secsinceepoch, int msecsincesec, u_int16_t seqno, u_int32_t ack_seqno,
   ConnectionHashtableListNode **currentnode)
 {
-  //check if found already, ie if o_to_r end timestamp fields are -1
-  if((*currentnode)->entry->r_to_o_secsinceepoch_start != -1
-    && (*currentnode)->entry->r_to_o_secsinceepoch_end == -1)
+  //check if found already, ie if o_to_r end timestamp fields are INVALIDINT
+  if((*currentnode)->entry->r_to_o_secsinceepoch_start != INVALIDINT
+    && (*currentnode)->entry->r_to_o_secsinceepoch_end == INVALIDINT)
   {
     //if not, check if the new sequence # is >= to the old one, if so update timestamp
     if((*currentnode)->entry->r_to_o_seqno <= ack_seqno)
@@ -226,6 +243,54 @@ void updateRtoOEnd(int secsinceepoch, int msecsincesec, u_int16_t seqno, u_int32
       (*currentnode)->entry->r_to_o_msecsincesec_end = msecsincesec;
     }
   }
+}
+
+//update the array of previous acks and check if there's 3 dup acks in a row
+void updateOtoRPrevAcks(ConnectionHashtableListNode **currentnode, u_int32_t newack)
+{
+  //printf("|%d| ", (int)newack);
+  int i;
+  for(i=PREVACKSSIZE-OFFSETVALUE; i>INTINITIALIZER; i--)
+  {
+    (*currentnode)->entry->o_to_r_prevacks[i] =
+      (*currentnode)->entry->o_to_r_prevacks[i-OFFSETVALUE];
+  }
+  (*currentnode)->entry->o_to_r_prevacks[INTINITIALIZER] =
+    newack;
+  printf("%d %d %d\n", (int)(*currentnode)->entry->o_to_r_prevacks[0],
+    (int)(*currentnode)->entry->o_to_r_prevacks[1],
+    (int)(*currentnode)->entry->o_to_r_prevacks[2]);
+  //check fast retransmit condition, return if false
+  for(i=INTINITIALIZER; i<PREVACKSSIZE-OFFSETVALUE; i++)
+  {
+    if((*currentnode)->entry->o_to_r_prevacks[i] !=
+      (*currentnode)->entry->o_to_r_prevacks[i+OFFSETVALUE])
+      return;
+  }
+  (*currentnode)->entry->o_to_r_fastretransmits++;
+  //do i need to call re-initialize otor prevacks here?
+}
+
+//update the array of previous acks and check if there's 3 dup acks in a row
+void updateRtoOPrevAcks(ConnectionHashtableListNode **currentnode, u_int32_t newack)
+{
+  int i;
+  for(i=PREVACKSSIZE-OFFSETVALUE; i>INTINITIALIZER; i--)
+  {
+    (*currentnode)->entry->r_to_o_prevacks[i] =
+      (*currentnode)->entry->r_to_o_prevacks[i-OFFSETVALUE];
+  }
+  (*currentnode)->entry->r_to_o_prevacks[OFFSETVALUE] =
+    newack;
+  //check fast retransmit condition, return if false
+  for(i=0; i<PREVACKSSIZE-OFFSETVALUE; i++)
+  {
+    if((*currentnode)->entry->r_to_o_prevacks[i] !=
+      (*currentnode)->entry->r_to_o_prevacks[i+OFFSETVALUE])
+      return;
+  }
+  (*currentnode)->entry->r_to_o_fastretransmits++;
+  //do i need to call re-initialize rtoo prevacks here?
 }
 
 void insertInConnectionHashtable(char **originatoripaddress, char **responderipaddress,
@@ -265,6 +330,7 @@ void insertInConnectionHashtable(char **originatoripaddress, char **responderipa
           app_data_vol, seqno, ack, (ConnectionHashtableListNode **)&currentbucketnodeptr);
         updateRtoOEnd(secsinceepoch, msecsincesec, seqno, ack,
           (ConnectionHashtableListNode **)&currentbucketnodeptr);
+        updateOtoRPrevAcks((ConnectionHashtableListNode **)&currentbucketnodeptr, ack);
         currentbucketnodeptr->entry->o_to_r_packets++;
         currentbucketnodeptr->entry->o_to_r_app_bytes += app_data_vol;
       }
@@ -276,6 +342,7 @@ void insertInConnectionHashtable(char **originatoripaddress, char **responderipa
           (ConnectionHashtableListNode **)&currentbucketnodeptr);
         updateRtoOStart(secsinceepoch, msecsincesec, secsinceepoch, msecsincesec,
           app_data_vol, seqno, ack, (ConnectionHashtableListNode **)&currentbucketnodeptr);
+        updateRtoOPrevAcks((ConnectionHashtableListNode **)&currentbucketnodeptr, ack);
       }
       if(compareTimeStamps(secsinceepoch, msecsincesec,
         currentbucketnodeptr->entry->secsinceepoch_start,
@@ -347,7 +414,7 @@ unsigned int ConnectionHashtableHashCode(char **originatoripaddress,
   char **responderipaddress, unsigned int originatorport, unsigned int responderport)
 {
   unsigned int hashcode = (unsigned int)(*originatoripaddress)[0]+originatorport+
-    (unsigned int)(*responderipaddress)[0]+responderport;
+    (unsigned int)(*responderipaddress)[INTINITIALIZER]+responderport;
   return hashcode;
 }
 

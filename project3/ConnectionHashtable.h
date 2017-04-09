@@ -2,7 +2,7 @@
   Brennan McFarland
   bfm21
   ConnectionHashtable.h
-  3/3/17
+  4/26/17
   The header for ConnectionHashtable.c
 */
 
@@ -11,6 +11,7 @@
 #define DEFAULTCONNECTIONHASHTABLESIZE 16
 #define CONNECTIONHASHTABLEGROWTHFACTOR 2
 #define ENTRYCOUNTINITIALIZER 1
+#define PREVACKSSIZE 3
 
 typedef struct ConnectionHashtableListEntry
 {
@@ -26,13 +27,17 @@ typedef struct ConnectionHashtableListEntry
 
   unsigned int o_to_r_packets;
   int o_to_r_app_bytes;
+  unsigned int o_to_r_fastretransmits;
   unsigned int r_to_o_packets;
   int r_to_o_app_bytes;
+  unsigned int r_to_o_fastretransmits;
 
   u_int16_t o_to_r_seqno;
   u_int32_t o_to_r_ack;
+  u_int32_t o_to_r_prevacks[PREVACKSSIZE]; //first index is more recent
   u_int16_t r_to_o_seqno;
   u_int32_t r_to_o_ack;
+  u_int32_t r_to_o_prevacks[PREVACKSSIZE]; //first index is more recent
 
   int o_to_r_secsinceepoch_start;
   int o_to_r_msecsincesec_start;
@@ -79,6 +84,7 @@ void initializeNewConnectionHashtableEntry(char **originatoripaddress,
 void initializeRTTTimestamps(int secsinceepoch_start, int msecsincesec_start,
   int secsinceepoch_end, int msecsincesec_end, int app_data_vol, u_int16_t seqno,
   u_int32_t ackno, ConnectionHashtableListNode **newnode);
+void initializePrevAcks(ConnectionHashtableListNode **newnode);
 void updateOtoRStart(int secsinceepoch_start, int msecsincesec_start,
   int secsinceepoch_end, int msecsincesec_end, int app_data_vol, u_int16_t seqno,
   u_int32_t ackno, ConnectionHashtableListNode **currentnode);
@@ -89,6 +95,8 @@ void updateOtoREnd(int secsinceepoch, int msecsincesec, u_int16_t seqno, u_int32
   ConnectionHashtableListNode **currentnode);
 void updateRtoOEnd(int secsinceepoch, int msecsincesec, u_int16_t seqno, u_int32_t ack_seqno,
   ConnectionHashtableListNode **currentnode);
+void updateOtoRPrevAcks(ConnectionHashtableListNode **currentnode, u_int32_t newack);
+void updateRtoOPrevAcks(ConnectionHashtableListNode **currentnode, u_int32_t newack);
 void insertInConnectionHashtable(char **originatoripaddress, char **responderipaddress,
   unsigned int originatorport, unsigned int responderport, int secsinceepoch,
   int msecsincesec, int isTCP, u_int16_t o_to_r_seqno, u_int32_t o_to_r_ack, int app_data_vol);

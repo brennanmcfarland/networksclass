@@ -2,7 +2,7 @@
   Brennan McFarland
   bfm21
   McFarlandNetworks.h
-  3/3/17
+  4/26/17
   Generally used includes, typedefs and constant definitions for networks projects
 */
 
@@ -18,7 +18,7 @@ typedef uint32_t u_int32_t;
 #define BITSHIFTVALUE 8
 #define DOUBLEINITIALIZER 0.0
 #define INVALIDDOUBLE -1.0
-#define INVALIDINTTIME -1
+#define INVALIDINT -1
 #define TRAILINGDECIMALCONVERTER 1000000
 #define EXIT_NOERROR 0
 #define EXIT_ERRORCODE 1
