@@ -8,7 +8,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include "ServerConnection.h"
-#include "Connection.h"
+#include "Connection.c"
 #include "McFarlandNetworks.h"
 
 
@@ -17,6 +17,31 @@ struct sockaddr addr;
 struct protoent *protoinfo;
 unsigned int addrlen;
 int sd, sd2;
+char buffer [SERVER_BUFLEN];
+
+/* could turn this into a hashtable in the future, but for a small number of
+ connections a simple array will do*/
+char **clientmaps; //mappings from client name to client id
+int clientmapssize = 0; //the number of client name-id mappings
+int clientmapscapacity = IDNAMEMAPTABLECAPACITY;
+
+//returns the new client id
+unsigned int generateclient_id(char **client_name)
+{
+  //initialize the list of ids if it's not already
+  if(clientmaps == NULL)
+    clientmaps = safemalloc(sizeof(char *[clientmapscapacity]));
+  //grow the list of ids if it's full
+  else if(clientmapssize >= clientmapscapacity)
+  {
+    clientmapscapacity = clientmapscapacity*IDNAMEMAPTABLEGROWTHFACTOR;
+    //TODO: need to actually copy the mappings over to a new array
+  }
+
+  //and add the new id
+  clientmaps[clientmapssize] = *client_name;
+  return clientmapssize-1;
+}
 
 int usage (char *progname)
 {
@@ -29,6 +54,55 @@ int errexit (char *format, char *arg)
     fprintf (stderr,format,arg);
     fprintf (stderr,"\n");
     exit (EXIT_ERRORCODE);
+}
+
+//this isn't working right, keeps throwing a reading error, am i reading the wrong thing?
+int saferead(int filedes, void *readbuffer)
+{
+  memset (buffer,FALSE,SERVER_BUFLEN);
+  int readresult = read (filedes,buffer,SERVER_BUFLEN - 1);
+  if (readresult < 0)
+    errexit ("reading error",NULL);
+  return readresult;
+}
+
+void safewrite(int filedes, void *writebuffer)
+{
+  if (write (filedes, writebuffer, strlen (writebuffer)) < 0)
+    errexit ("error writing message: %s", writebuffer);
+}
+
+int safefileread(FILE *filestream, void *readbuffer, int readbuffersize)
+{
+  int readresult = fread(readbuffer,BYTESIZE,readbuffersize,filestream);
+  if(readresult == FALSE && ferror(filestream) != FALSE)
+  {
+    printf("Error reading from file.\n");
+    exit(EXIT_ERRORCODE);
+  }
+  return readresult;
+}
+
+void safefileopen(FILE **filestream, char *filename, char filemode)
+{
+  char *filemodeptr = &filemode;
+  if((*filestream = fopen(filename,filemodeptr)) == NULL)
+  {
+    printf("Error: Unable to read from file.\n");
+    exit(EXIT_ERRORCODE);
+  }
+}
+
+void *safemalloc (unsigned int sz)
+{
+    void *p;
+    if ((p = (void *)malloc (sz)) == NULL)
+    {
+        printf ("memory allocation failed, exiting ...\n");
+        exit (EXIT_ERRORCODE);
+    }
+    memset (p,FALSE,sz);
+    return (p);
 }
 
 void init(int argc, char *argv [])
@@ -74,9 +148,19 @@ int main (int argc, char *argv [])
       if (sd2 < 0)
         errexit ("error accepting connection", NULL);
 
-      /* write message to the connection */
-      if (write (sd2,argv [SERVER_MSG_POS],strlen (argv [SERVER_MSG_POS])) < 0)
-        errexit ("error writing message: %s", argv [SERVER_MSG_POS]);
+      /* ask for login information and wait for response*/
+      safewrite(sd2, "Welcome.  Please input a username:");
+
+      saferead(sd2, buffer);
+      printf("%s", (char *)buffer);
+      //while(saferead(sd, buffer) != 0)
+      //  generateclient_id((char **)&buffer);
+
+      /* test stuff (remove this later) */
+      //printf("%s", clientmaps[0]);
+      /* write test message to the connection (remove this later)*/
+      //safewrite(sd2, argv[SERVER_MSG_POS]);
+
     }
 
     /* close connections and exit */

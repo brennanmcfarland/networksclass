@@ -8,15 +8,30 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include "ClientConnection.h"
-#include "Connection.h"
+#include "Connection.c"
 #include "McFarlandNetworks.h"
 
 
 struct sockaddr_in sockin;
 struct hostent *hinfo;
 struct protoent *protoinfo;
-char buffer [CLIENT_BUFLEN];
+char inputbuffer [CLIENT_BUFLEN];
+char outputbuffer [CLIENT_BUFLEN];
 int sd, ret;
+
+int sendMessage(unsigned int command_id, unsigned int target_id,
+  unsigned int client_id, char *message_text)
+{
+  //char *command_name = getcommand_name(command_id);
+
+  return ERROR;
+}
+
+void safescanf(char **buffer)
+{
+  if(scanf("%s", outputbuffer) < 0)
+    exit(EXIT_ERRORCODE);
+}
 
 int usage (char *progname)
 {
@@ -67,16 +82,29 @@ int main (int argc, char *argv [])
     /* initialize client */
     init(argc, argv);
 
+    /* capture and print the welcome message from the server */
+    memset (inputbuffer,0x0,CLIENT_BUFLEN);
+    ret = read (sd,inputbuffer,CLIENT_BUFLEN - 1);
+    if (ret < 0)
+      errexit ("reading error",NULL);
+    fprintf (stdout,"%s\n",inputbuffer);
+
+    /*capture whatever the user types and send the appropriate message */
+    safescanf((char **)&outputbuffer);
+    printf("hello");
+    printf("%s", outputbuffer);
+
     //TODO: add an exit condition
-    while(1 == 1)
-    {
-      /* snarf whatever server provides and print it */
-      memset (buffer,0x0,CLIENT_BUFLEN);
-      ret = read (sd,buffer,CLIENT_BUFLEN - 1);
+    /* main loop */
+    //while(1 == 1)
+    //{
+      /* capture and print whatever the server provides */
+      memset (inputbuffer,0x0,CLIENT_BUFLEN);
+      ret = read (sd,inputbuffer,CLIENT_BUFLEN - 1);
       if (ret < 0)
         errexit ("reading error",NULL);
-        fprintf (stdout,"%s\n",buffer);
-    }
+      //fprintf (stdout,"%s\n",inputbuffer);
+    //}
 
     /* close & exit */
     close (sd);
