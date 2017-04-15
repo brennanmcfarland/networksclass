@@ -15,8 +15,8 @@
 struct sockaddr_in sockin;
 struct hostent *hinfo;
 struct protoent *protoinfo;
-char inputbuffer [CLIENT_BUFLEN];
-char outputbuffer [CLIENT_BUFLEN];
+char inputbuffer [CLIENT_BUFLEN]; //input from the server
+char outputbuffer [CLIENT_BUFLEN]; //output to the server
 int sd, ret;
 
 int sendMessage(unsigned int command_id, unsigned int target_id,
@@ -25,6 +25,32 @@ int sendMessage(unsigned int command_id, unsigned int target_id,
   //char *command_name = getcommand_name(command_id);
 
   return ERROR;
+}
+
+/*
+
+        TODO: SAFEREAD NEVER FINISHES, WHY????
+
+
+*/
+
+
+void waitforserverresponse(int filedes, void *readbuffer)
+{
+  while(1 == 1)
+  {
+    if(saferead(filedes, readbuffer) != 0)
+      return;
+  }
+}
+
+int saferead(int filedes, void *readbuffer)
+{
+  memset (readbuffer,FALSE,CLIENT_BUFLEN);
+  int readresult = read (filedes, readbuffer, CLIENT_BUFLEN - 1);
+  if (readresult < 0)
+    errexit ("reading error",NULL);
+  return readresult;
 }
 
 void safescanf(char **buffer)
@@ -83,28 +109,30 @@ int main (int argc, char *argv [])
     init(argc, argv);
 
     /* capture and print the welcome message from the server */
-    memset (inputbuffer,0x0,CLIENT_BUFLEN);
-    ret = read (sd,inputbuffer,CLIENT_BUFLEN - 1);
-    if (ret < 0)
-      errexit ("reading error",NULL);
-    fprintf (stdout,"%s\n",inputbuffer);
+    //memset (inputbuffer,FALSE,CLIENT_BUFLEN);
+    //ret = read (sd,inputbuffer,CLIENT_BUFLEN - 1);
+    //if (ret < 0)
+    //  errexit ("reading error",NULL);
+    //fprintf (stdout,"%s\n",inputbuffer);
+
+
+    waitforserverresponse(sd, (void *)&inputbuffer);
+    printf("%s", inputbuffer);
+    //saferead(sd, (void *)&inputbuffer);
 
     /*capture whatever the user types and send the appropriate message */
     safescanf((char **)&outputbuffer);
-    printf("hello");
-    printf("%s", outputbuffer);
+
+    printf("Connected as user: %s\n", outputbuffer);
 
     //TODO: add an exit condition
     /* main loop */
-    //while(1 == 1)
-    //{
+    while(1 == 1)
+    {
       /* capture and print whatever the server provides */
-      memset (inputbuffer,0x0,CLIENT_BUFLEN);
-      ret = read (sd,inputbuffer,CLIENT_BUFLEN - 1);
-      if (ret < 0)
-        errexit ("reading error",NULL);
-      //fprintf (stdout,"%s\n",inputbuffer);
-    //}
+      saferead(sd, inputbuffer);
+      printf ("%s\n",inputbuffer);
+    }
 
     /* close & exit */
     close (sd);

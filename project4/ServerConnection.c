@@ -56,7 +56,6 @@ int errexit (char *format, char *arg)
     exit (EXIT_ERRORCODE);
 }
 
-//this isn't working right, keeps throwing a reading error, am i reading the wrong thing?
 int saferead(int filedes, void *readbuffer)
 {
   memset (buffer,FALSE,SERVER_BUFLEN);
@@ -149,7 +148,7 @@ int main (int argc, char *argv [])
         errexit ("error accepting connection", NULL);
 
       /* ask for login information and wait for response*/
-      safewrite(sd2, "Welcome.  Please input a username:");
+      safewrite(sd2, "Welcome.  Please input a username: \n");
 
       saferead(sd2, buffer);
       printf("%s", (char *)buffer);
