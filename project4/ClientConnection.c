@@ -21,26 +21,21 @@ CommandMessage outputbuffer; //output to the server
 char *userinputbuffer; //input from the user
 int sd, ret;
 int client_id;
+char *client_name;
 
 //send a message/command
-int sendmessage(unsigned int command_id, unsigned int target_id,
-  char *message_text)
+void sendcommandmessage(unsigned int command_id, unsigned int target_id)
 {
-  //char *command_name = getcommand_name(command_id);
-
-  return ERROR;
+  CommandMessage commandmessage = *(CommandMessage *)safemalloc(sizeof(CommandMessage));
+  commandmessage.command_id = command_id;
+  strcpy(commandmessage.command_name, getcommand_name(commandmessage.command_id));
+  commandmessage.target_id = target_id;
+  strcpy(commandmessage.target_name, ""); //TODO: make this something valid
+  commandmessage.client_id = client_id;
+  strcpy(commandmessage.client_name, client_name);
+  safewritecommand(sd, (void *)&commandmessage);
 }
 
-void promptuser(char *inputmessage)
-{
-  printf("%s\n", inputmessage);
-  safescanf((char **)&userinputbuffer);
-  while(strlen(userinputbuffer) > MAXCOMMANDNAMESIZE)
-  {
-    printf("Input size out of range.  Please try again: ");
-    safescanf((char **)&userinputbuffer);
-  }
-}
 
 //generate a unique id for the client and send it to the server
 unsigned int generateclient_id(char **client_name)
@@ -53,7 +48,6 @@ unsigned int generateclient_id(char **client_name)
   strcpy(message_generate_id.target_name, "");
   message_generate_id.client_id = FALSE;
   strcpy(message_generate_id.client_name, *client_name);
-  printf("%s\n", message_generate_id.client_name);
   safewritecommand(sd, (void *)&message_generate_id);
 
   //and wait for the id as a response
@@ -129,29 +123,4 @@ void init(int argc, char *argv [])
   /* connect the socket */
   if (connect (sd, (struct sockaddr *)&sockin, sizeof(sockin)) < 0)
       errexit ("cannot connect", NULL);
-}
-
-int main (int argc, char *argv [])
-{
-
-    /* initialize client */
-    init(argc, argv);
-
-
-    /* print the welcome message and send whatever the user types as to get id*/
-    promptuser("Welcome.  Please input a username:");
-    client_id = generateclient_id((char **)&userinputbuffer);
-    printf("Client recognizes user: %s\n", userinputbuffer);
-
-    //TODO: add an exit condition
-    /* main loop */
-    while(1 == 1)
-    {
-      /* capture and print whatever the server provides */
-      saferead(sd, (void *)&inputbuffer);
-    }
-
-    /* close & exit */
-    close (sd);
-    exit (0);
 }

@@ -80,6 +80,15 @@ void handleconnection(int sd)
     errexit("error generating user id", NULL);
   generateclient_id((char **)&(message_generate_id.client_name));
   printf("Server recognizes user: %s\n", message_generate_id.client_name);
+
+  /* continue accepting responses until the quit command is received */
+  while(1 == 1)
+  {
+    waitforclientresponse(sd, (void *)&inputbuffer);
+    CommandMessage commandmessage = inputbuffer;
+    if(commandmessage.command_id == CMDID_QUIT)
+      return;
+  }
 }
 
 int usage (char *progname)
