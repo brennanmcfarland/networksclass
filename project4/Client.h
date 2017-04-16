@@ -20,7 +20,7 @@
   "if you prefer.  It kind of sucks.  Not much to see here, but feel free to "\
   "poke around.\n"
 #define STRING_COMMANDLIST "\nList of things you can do:\n"\
-  "quit - terminate the connection"
+  "quit - terminate the connection\n"
 
 void promptcommandlist();
 void promptuser(char *inputmessage);

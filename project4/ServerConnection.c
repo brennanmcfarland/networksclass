@@ -93,7 +93,7 @@ void handleconnection(int sd)
 
 int usage (char *progname)
 {
-    fprintf (stderr,"usage: %s port msg\n", progname);
+    fprintf (stderr,"usage: %s port\n", progname);
     exit (EXIT_ERRORCODE);
 }
 
