@@ -13,6 +13,9 @@ char *getcommand_name(unsigned int command_id)
     case 32:
       return "GENERATE-CLIENT-ID";
       break;
+    case 34:
+      return "LIST-FILES";
+      break;
     case 99:
       return "QUIT";
       break;

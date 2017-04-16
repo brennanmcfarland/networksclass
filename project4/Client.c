@@ -27,6 +27,10 @@ void parseuserinput()
     printf("Goodbye\n");
     exit(0);
   }
+  else if(strcmp(userinputbuffer, "list files") == 0)
+  {
+    sendcommandmessage(CMDID_LISTFILES, FALSE);
+  }
   else
   {
     printf("Invalid input.  Please try again: ");

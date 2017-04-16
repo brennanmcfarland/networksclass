@@ -8,6 +8,8 @@
 #define SERVER_MAXCCONNECTIONS 1024
 
 unsigned int generateclient_id(char **client_name);
+void listfiles(unsigned int clientid);
+void readfilelist();
 void waitforclientresponse(int filedes, void *readbuffer);
 void handleconnection(int sd);
 int usage (char *progname);
