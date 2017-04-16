@@ -27,6 +27,7 @@ int sd, sd2;
 
 CommandMessage inputbuffer; //input from clients
 CommandMessage outputbuffer; //output to a client
+char textbuffer[TEXTBUFLEN]; //pure text output to a client
 
 unsigned int currentclient_id; //id of the current client, to be replaced if handled in parallel
 
@@ -58,6 +59,30 @@ unsigned int generateclient_id(char **client_name)
 }
 */
 
+/*
+  TODO: finish this function and add a corresponding one for the client,
+  right now this is just a "first draft"
+  call it to use for sending chunks of text, ie list files, also refactor
+  to have separate server and ServerConnection
+*/
+//send text to a client
+void sendtext(char **texttosend, unsigned int target_id)
+{
+  int substrindex = 0;
+  //while there's still text left to send
+  while(substrindex < strlen(*texttosend))
+  {
+    //take a substring and send it
+    memcpy(textbuffer, texttosend[substrindex], strlen(textbuffer)-1);
+    textbuffer[strlen(textbuffer)-1] = '\0'; //null terminator
+    safewrite(target_id, (void *)&textbuffer);
+    substrindex += strlen(textbuffer);
+  }
+  //send EOF at the end to indicate it's done
+  safewrite(target_id, EOF, (void *)&textbuffer);
+  //may need to clear the arg buffer when done, or do that outside function
+}
+
 //this is only useful if there's multiple parallel connections, so for now it's pointless
 unsigned int generateclient_id(char **client_name)
 {
@@ -68,62 +93,54 @@ unsigned int generateclient_id(char **client_name)
 //send the list of readable files
 void listfiles(unsigned int clientid)
 {
-
+  /*
+    TODO:
+      have a buffer on each end of a fixed size, and make a function so that
+      every time text is sent it's chopped up into pieces and sent across that
+      buffer, with an EOF appended to the end
+  */
+  printf("%s", filelist);
+  safewrite(clientid, (void *)&filelist);
 }
 
-/*
-  TODO: this needs refactoring
-*/
 //read the list of files from file
 void readfilelist()
 {
   filelist = "";
-  DIR *dp;
-  struct dirent *entry;
-  struct stat statbuf;
-  int depth = 0;
-  char *dir = "files";
-  if((dp = opendir(dir)) == NULL) {
-    errexit("cannot open directory: %s\n", dir);
+  DIR *dirptr; //pointer to the directory
+  struct dirent *direntry; //pointer to the current entry in the directory
+  struct stat filestat; //the file status
+  char *currentdirectory = "files";
+
+  if((dirptr = opendir(currentdirectory)) == NULL) {
+    errexit("cannot open directory: %s\n", currentdirectory);
   }
-  chdir(dir);
-  while((entry = readdir(dp)) != NULL)
+  chdir(currentdirectory);
+  while((direntry = readdir(dirptr)) != NULL)
   {
-    lstat(entry->d_name,&statbuf);
-    if(S_ISDIR(statbuf.st_mode))
+    lstat(direntry->d_name,&filestat);
+    if(S_ISDIR(filestat.st_mode))
     {
-      /* Found a directory, but ignore . and .. */
-      if(strcmp(".",entry->d_name) == 0 ||
-        strcmp("..",entry->d_name) == 0)
+      // ignore . and ..
+      if(strcmp(".",direntry->d_name) == 0 ||
+        strcmp("..",direntry->d_name) == 0)
         continue;
-      //printf("%*s%s/\n",depth,"",entry->d_name);
-      /* Recurse at a new indent level */
-      //printdir(entry->d_name,depth+4);
     }
     else
     {
-      //saferealloc not a valid pointer for some reason, why?
-      //int strlens = strlen(filelist)+strlen(entry->d_name);
       int filelistsize = strlen(filelist);
-      printf("%d\n", (int)strlen(entry->d_name));
-      char *filelist2 = (char *)safemalloc(filelistsize+strlen(entry->d_name));
-      printf("%d\n", (int)strlen(filelist2));
-      //filelist2 = (char *)strcat(filelist, entry->d_name);
+      char *filelist2 = (char *)safemalloc(filelistsize+strlen(direntry->d_name)+1);
       if(strlen(filelist) == 0)
-      {
-        //filelist = (char *)safemalloc(strlen(filelist2));
-        strcpy(filelist2, entry->d_name);
-      }
+        strcpy(filelist2, direntry->d_name);
       else
-        filelist2 = (char *)strcat(filelist, entry->d_name);
+        filelist2 = (char *)strcat(filelist, direntry->d_name);
+      filelist2 = (char *)strcat(filelist2, "\n");
       filelist = (char *)safemalloc(strlen(filelist2));
       strcpy(filelist, filelist2);
-      printf("%*s%s\n",depth,"",entry->d_name);
-      printf("|%s|\n", filelist);
     }
   }
   chdir("..");
-  closedir(dp);
+  closedir(dirptr);
 }
 
 //wait for the client to respond with a message
@@ -155,7 +172,7 @@ void handleconnection(int sd)
     CommandMessage commandmessage = inputbuffer;
 
     if(commandmessage.command_id == CMDID_LISTFILES)
-      listfiles(sd);
+      listfiles(sd2);
     if(commandmessage.command_id == CMDID_QUIT)
       return;
   }

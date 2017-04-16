@@ -30,6 +30,9 @@ void parseuserinput()
   else if(strcmp(userinputbuffer, "list files") == 0)
   {
     sendcommandmessage(CMDID_LISTFILES, FALSE);
+    waitforservertext(sd);
+    printf("finished getting text from server\n");
+    //waitforserverresponse(sd, textinputbuffer); //probably wont work, buffer not inited
   }
   else
   {

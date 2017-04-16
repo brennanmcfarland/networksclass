@@ -10,6 +10,7 @@ void sendcommandmessage(unsigned int command_id, unsigned int target_id);
 void promptuser(char *inputmessage);
 unsigned int generateclient_id(char **client_name);
 void waitforserverresponse(int filedes, void *readbuffer);
+//void waitforservertext(int filedes);
 void safescanf(char **buffer);
 int usage (char *progname);
 int errexit (char *format, char *arg);

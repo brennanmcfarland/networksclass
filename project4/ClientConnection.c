@@ -16,14 +16,18 @@
 struct sockaddr_in sockin;
 struct hostent *hinfo;
 struct protoent *protoinfo;
+
 CommandMessage inputbuffer; //input from the server
 CommandMessage outputbuffer; //output to the server
+char textbuffer[TEXTBUFLEN]; //pure text output to the server
 char *userinputbuffer; //input from the user
+char *textinputbuffer; //text data input from the server
+
 int sd, ret;
 int client_id;
 char *client_name;
 
-//send a message/command
+//send a command
 void sendcommandmessage(unsigned int command_id, unsigned int target_id)
 {
   CommandMessage commandmessage = *(CommandMessage *)safemalloc(sizeof(CommandMessage));
@@ -63,7 +67,27 @@ void waitforserverresponse(int filedes, void *readbuffer)
       return;
   }
 }
-
+/*
+void waitforservertext(int filedes)
+{
+  //safescanf(&textinputbuffer);
+  int scanbuffersize = SCANBUFFERINITSIZE;
+  char *strbuffer;
+  int nextchar;
+  size_t lenofstr = 0;
+  strbuffer = saferealloc(NULL, sizeof(char)*scanbuffersize);//size is start size
+  const char filemode_read = 'r';
+  printf("%c\n", fgetc(fdopen(filedes, &filemode_read)));
+  while(EOF!=(nextchar=fgetc(fdopen(filedes, &filemode_read))) && nextchar != '\n'){
+      strbuffer[lenofstr++]=nextchar;
+      if(lenofstr==scanbuffersize){
+          strbuffer = saferealloc(strbuffer, sizeof(char)*(scanbuffersize+=16));
+      }
+  }
+  strbuffer[lenofstr++]='\0';
+  textinputbuffer = saferealloc(strbuffer, sizeof(char)*lenofstr);
+}
+*/
 void safescanf(char **buffer)
 {
   int scanbuffersize = SCANBUFFERINITSIZE;
