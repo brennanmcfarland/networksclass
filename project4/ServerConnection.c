@@ -71,43 +71,15 @@ void waitforclientresponse(int filedes, void *readbuffer)
   }
 }
 
-/*
-  PROBLEM: it reads only the first value and exits
-  SOLUTION: create a function to read each value into the struct
-  is it the read that's not reading the whole struct?
-*/
-
-/*void receivemessage()
-{
-  CommandMessage receivedmsg;
-  receivedmsg = *(CommandMessage *)safemalloc(sizeof(CommandMessage));
-  waitforclientresponse(sd, (void *)&inputbuffer);
-  receivedmsg.command_id = (unsigned int)inputbuffer;
-  waitforclientresponse(sd, (void *) &inputbuffer);
-  receivedmsg.command_name = (char *)inputbuffer;
-}
-*/
 void handleconnection(int sd)
 {
   /* ask for login information and wait for response*/
   waitforclientresponse(sd, (void *)&inputbuffer);
   CommandMessage message_generate_id = inputbuffer;
-  //if(message_generate_id.command_id != CMDID_GENERATECLIENTID)
-  //  errexit("error generating user id", NULL);
+  if(message_generate_id.command_id != CMDID_GENERATECLIENTID)
+    errexit("error generating user id", NULL);
   generateclient_id((char **)&(message_generate_id.client_name));
   printf("Server recognizes user: %s\n", message_generate_id.client_name);
-
-  //saferead(sd, inputbuffer);
-  //printf("hallo");
-  //printf("%s", (char *)inputbuffer);
-
-  //while(saferead(sd, buffer) != 0)
-  //  generateclient_id((char **)&buffer);
-
-  /* test stuff (remove this later) */
-  //printf("%s", clientmaps[0]);
-  /* write test message to the connection (remove this later)*/
-  //safewrite(sd2, argv[SERVER_MSG_POS]);
 }
 
 int usage (char *progname)

@@ -12,11 +12,6 @@
 #include "McFarlandNetworks.h"
 
 
-/*
-  TODO:
-    fix username input so it doesn't just capture the first word
-    make sure input won't overflow any of the text buffers
-*/
 
 struct sockaddr_in sockin;
 struct hostent *hinfo;
@@ -34,6 +29,17 @@ int sendmessage(unsigned int command_id, unsigned int target_id,
   //char *command_name = getcommand_name(command_id);
 
   return ERROR;
+}
+
+void promptuser(char *inputmessage)
+{
+  printf("%s\n", inputmessage);
+  safescanf((char **)&userinputbuffer);
+  while(strlen(userinputbuffer) > MAXCOMMANDNAMESIZE)
+  {
+    printf("Input size out of range.  Please try again: ");
+    safescanf((char **)&userinputbuffer);
+  }
 }
 
 //generate a unique id for the client and send it to the server
@@ -66,32 +72,19 @@ void waitforserverresponse(int filedes, void *readbuffer)
 
 void safescanf(char **buffer)
 {
-  //just returns null if nothing read or error
-  //fgets(*buffer, sizeof((char[])(*buffer)), stdin);
-
-  //if(scanf("%s", *buffer) < 0)
-  //  exit(EXIT_ERRORCODE);
-
-/*
-  GRABBED THIS FROM THE NET, SEE IF IT WILL WORK FOR VARIABLE LENGTH SCANNING
-
-*/
-  int size = 10;
-//The size is extended by the input with the value of the provisional
-  char *str;
-  int ch;
-  size_t len = 0;
-  str = realloc(NULL, sizeof(char)*size);//size is start size TODO: will need to make safe
-  while(EOF!=(ch=fgetc(stdin)) && ch != '\n'){
-      str[len++]=ch;
-      if(len==size){
-          str = realloc(str, sizeof(char)*(size+=16)); //TODO: will need to make safe
+  int scanbuffersize = SCANBUFFERINITSIZE;
+  char *strbuffer;
+  int nextchar;
+  size_t lenofstr = 0;
+  strbuffer = saferealloc(NULL, sizeof(char)*scanbuffersize);//size is start size
+  while(EOF!=(nextchar=fgetc(stdin)) && nextchar != '\n'){
+      strbuffer[lenofstr++]=nextchar;
+      if(lenofstr==scanbuffersize){
+          strbuffer = saferealloc(strbuffer, sizeof(char)*(scanbuffersize+=16));
       }
   }
-  str[len++]='\0';
-
-  *buffer = realloc(str, sizeof(char)*len); //TODO: will need to make safe
-
+  strbuffer[lenofstr++]='\0';
+  *buffer = saferealloc(strbuffer, sizeof(char)*lenofstr);
 }
 
 int usage (char *progname)
@@ -144,35 +137,10 @@ int main (int argc, char *argv [])
     /* initialize client */
     init(argc, argv);
 
-    //test message, remove later
-    //CommandMessage testmessage = *(CommandMessage *)safemalloc(sizeof(CommandMessage));
-    //testmessage.command_id = 1;
-    //strcpy(testmessage.command_name, getcommand_name(testmessage.command_id));
-    //testmessage.command_name = getcommand_name(testmessage.command_id);
-    //testmessage.target_id = FALSE;
-    //strcpy(testmessage.target_name, "");
-    //testmessage.target_name = NULL;
-    //testmessage.client_id = FALSE;
-    //strcpy(testmessage.client_name, "Brett");
-    //testmessage.client_name = "Brett";
-    //printf("%s", testmessage.client_name);
-    //safewritecommand(sd, (void *)&testmessage);
-
 
     /* print the welcome message and send whatever the user types as to get id*/
-    //waitforserverresponse(sd, (void *)&inputbuffer);
-    printf("Welcome.  Please input a username: \n");
-    //char *testarr;
-    //char **test;
-    //test = &testarr;
-    //testarr = "dlskjf hd";
-    //safescanf(test);
-    //printf("%s", testarr);
-    //fflush(stdout);
-
-    safescanf((char **)&userinputbuffer);
+    promptuser("Welcome.  Please input a username:");
     client_id = generateclient_id((char **)&userinputbuffer);
-
     printf("Client recognizes user: %s\n", userinputbuffer);
 
     //TODO: add an exit condition

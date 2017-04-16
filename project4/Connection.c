@@ -59,3 +59,15 @@ void *safemalloc (unsigned int sz)
     memset (p,FALSE,sz);
     return (p);
 }
+
+void *saferealloc (void *buffer, unsigned int sz)
+{
+    void *p;
+    if ((p = (void *)realloc (buffer, sz)) == NULL)
+    {
+        printf ("memory allocation failed, exiting ...\n");
+        exit (EXIT_ERRORCODE);
+    }
+    //memset (p,FALSE,sz);
+    return (p);
+}

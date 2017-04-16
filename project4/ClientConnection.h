@@ -4,9 +4,11 @@
 #define CLIENT_HOST_POS 1
 #define CLIENT_PORT_POS 2
 #define CLIENT_BUFLEN 1024
+#define SCANBUFFERINITSIZE 16
 
 int sendmessage(unsigned int command_id, unsigned int target_id,
   char *message_text);
+void promptuser(char *inputmessage);
 unsigned int generateclient_id(char **client_name);
 void waitforserverresponse(int filedes, void *readbuffer);
 void safescanf(char **buffer);

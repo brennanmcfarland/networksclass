@@ -17,6 +17,7 @@ int safereadcommand(int filedes, void *readbuffer);
 void safewrite(int filedes, void *writebuffer);
 void safewritecommand(int filedes, void *writebuffer);
 void *safemalloc (unsigned int sz);
+void *saferealloc (void *buffer, unsigned int sz);
 
 
 typedef struct CommandMessage
