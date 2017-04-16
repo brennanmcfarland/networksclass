@@ -26,9 +26,9 @@ int saferead(int filedes, void *readbuffer)
   return readresult;
 }
 
-void safewrite(int filedes, void *writebuffer)
+void safewrite(int filedes, void *writebuffer, int size)
 {
-  if (write (filedes, writebuffer, strlen (writebuffer)) < 0)
+  if (write (filedes, writebuffer, size) < 0)
     errexit ("error writing message: %s", writebuffer);
 }
 

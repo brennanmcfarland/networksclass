@@ -48,7 +48,8 @@ unsigned int generateclient_id(char **client_name)
   message_generate_id.client_id = FALSE;
   message_generate_id.client_name = *client_name;
   message_generate_id.message_text = NULL;
-  safewrite(sd, (void *)&message_generate_id);
+  printf("%s\n", message_generate_id.client_name);
+  safewrite(sd, (void *)&message_generate_id, sizeof(CommandMessage));
 
   //and wait for the id as a response
   return 1;
@@ -143,6 +144,19 @@ int main (int argc, char *argv [])
 
     /* initialize client */
     init(argc, argv);
+
+    //test message, remove later
+    CommandMessage testmessage = *(CommandMessage *)safemalloc(sizeof(CommandMessage));
+    testmessage.command_id = 1;
+    testmessage.command_name = getcommand_name(testmessage.command_id);
+    testmessage.target_id = FALSE;
+    testmessage.target_name = NULL;
+    testmessage.client_id = FALSE;
+    testmessage.client_name = "Brett";
+    testmessage.message_text = NULL;
+    printf("%s", testmessage.client_name);
+    safewrite(sd, (void *)&testmessage, sizeof(CommandMessage));
+
 
     /* print the welcome message and send whatever the user types as to get id*/
     //waitforserverresponse(sd, (void *)&inputbuffer);

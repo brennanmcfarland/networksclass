@@ -13,7 +13,7 @@
 
 char *getcommand_name(unsigned int command_id);
 int saferead(int filedes, void *readbuffer);
-void safewrite(int filedes, void *writebuffer);
+void safewrite(int filedes, void *writebuffer, int size);
 void *safemalloc (unsigned int sz);
 
 
