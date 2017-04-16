@@ -5,13 +5,13 @@
 #define ERROR 1
 #define QLEN 1
 #define SERVER_BUFLEN 1024
+#define SERVER_MAXCCONNECTIONS 1024
 
 unsigned int generateclient_id(char **client_name);
+void waitforclientresponse(int filedes, void *readbuffer);
+void handleconnection(int sd);
 int usage (char *progname);
 int errexit (char *format, char *arg);
-int saferead(int filedes, void *readbuffer);
-void safewrite(int filedes, void *writebuffer);
 int safefileread(FILE *filestream, void *readbuffer, int readbuffersize);
 void safefileopen(FILE **filestream, char *filename, char filemode);
-void *safemalloc (unsigned int sz);
 void init(int argc, char *argv []);

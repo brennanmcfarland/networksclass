@@ -4,10 +4,17 @@
 #define TRUE 1
 #define FALSE 0
 #define EXIT_ERRORCODE 1
+#define BUFLEN sizeof(CommandMessage)
 #define IDNAMEMAPTABLECAPACITY 16
 #define IDNAMEMAPTABLEGROWTHFACTOR 2
+#define MAXINPUTLENGTH 65536
+
+#define CMDID_GENERATECLIENTID 32
 
 char *getcommand_name(unsigned int command_id);
+int saferead(int filedes, void *readbuffer);
+void safewrite(int filedes, void *writebuffer);
+void *safemalloc (unsigned int sz);
 
 
 typedef struct CommandMessage
