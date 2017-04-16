@@ -4,6 +4,7 @@
 
 char *getcommand_name(unsigned int command_id)
 {
+  //all commands must be < MAXCOMMANDNAMESIZE
   switch(command_id)
   {
     case 1:
@@ -26,9 +27,24 @@ int saferead(int filedes, void *readbuffer)
   return readresult;
 }
 
-void safewrite(int filedes, void *writebuffer, int size)
+int safereadcommand(int filedes, void *readbuffer)
 {
-  if (write (filedes, writebuffer, size) < 0)
+  memset (readbuffer,FALSE,sizeof(CommandMessage));
+  int readresult = read (filedes, readbuffer, sizeof(CommandMessage));
+  if (readresult < 0)
+    errexit ("reading error",NULL);
+  return readresult;
+}
+
+void safewrite(int filedes, void *writebuffer)
+{
+  if (write (filedes, writebuffer, sizeof( *writebuffer)) < 0)
+    errexit ("error writing message: %s", writebuffer);
+}
+
+void safewritecommand(int filedes, void *writebuffer)
+{
+  if (write (filedes, writebuffer, sizeof(CommandMessage)) < 0)
     errexit ("error writing message: %s", writebuffer);
 }
 

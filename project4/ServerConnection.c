@@ -66,7 +66,7 @@ void waitforclientresponse(int filedes, void *readbuffer)
 {
   while(1 == 1)
   {
-    if(saferead(filedes, readbuffer) != 0)
+    if(safereadcommand(filedes, readbuffer) != 0)
       return;
   }
 }

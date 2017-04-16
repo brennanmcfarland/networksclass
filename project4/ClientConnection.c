@@ -15,7 +15,7 @@
 /*
   TODO:
     fix username input so it doesn't just capture the first word
-    is it possible to overflow the buffers?  may have to look into that
+    make sure input won't overflow any of the text buffers
 */
 
 struct sockaddr_in sockin;
@@ -42,14 +42,13 @@ unsigned int generateclient_id(char **client_name)
   //message the server
   CommandMessage message_generate_id = *(CommandMessage *)safemalloc(sizeof(CommandMessage));
   message_generate_id.command_id = CMDID_GENERATECLIENTID;
-  message_generate_id.command_name = getcommand_name(message_generate_id.command_id);
+  strcpy(message_generate_id.command_name, getcommand_name(message_generate_id.command_id));
   message_generate_id.target_id = FALSE;
-  message_generate_id.target_name = NULL;
+  strcpy(message_generate_id.target_name, "");
   message_generate_id.client_id = FALSE;
-  message_generate_id.client_name = *client_name;
-  message_generate_id.message_text = NULL;
+  strcpy(message_generate_id.client_name, *client_name);
   printf("%s\n", message_generate_id.client_name);
-  safewrite(sd, (void *)&message_generate_id, sizeof(CommandMessage));
+  safewritecommand(sd, (void *)&message_generate_id);
 
   //and wait for the id as a response
   return 1;
@@ -146,16 +145,18 @@ int main (int argc, char *argv [])
     init(argc, argv);
 
     //test message, remove later
-    CommandMessage testmessage = *(CommandMessage *)safemalloc(sizeof(CommandMessage));
-    testmessage.command_id = 1;
-    testmessage.command_name = getcommand_name(testmessage.command_id);
-    testmessage.target_id = FALSE;
-    testmessage.target_name = NULL;
-    testmessage.client_id = FALSE;
-    testmessage.client_name = "Brett";
-    testmessage.message_text = NULL;
-    printf("%s", testmessage.client_name);
-    safewrite(sd, (void *)&testmessage, sizeof(CommandMessage));
+    //CommandMessage testmessage = *(CommandMessage *)safemalloc(sizeof(CommandMessage));
+    //testmessage.command_id = 1;
+    //strcpy(testmessage.command_name, getcommand_name(testmessage.command_id));
+    //testmessage.command_name = getcommand_name(testmessage.command_id);
+    //testmessage.target_id = FALSE;
+    //strcpy(testmessage.target_name, "");
+    //testmessage.target_name = NULL;
+    //testmessage.client_id = FALSE;
+    //strcpy(testmessage.client_name, "Brett");
+    //testmessage.client_name = "Brett";
+    //printf("%s", testmessage.client_name);
+    //safewritecommand(sd, (void *)&testmessage);
 
 
     /* print the welcome message and send whatever the user types as to get id*/
