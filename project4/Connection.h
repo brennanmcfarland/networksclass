@@ -15,12 +15,17 @@
 #define CMDID_QUIT 99
 
 char *getcommand_name(unsigned int command_id);
+void awaitresponse(int filedes, void *readbuffer);
 int saferead(int filedes, void *readbuffer);
 int safereadcommand(int filedes, void *readbuffer);
+void receivetext(char *texttoreceive, char *textbuffer, int source_id);
 void safewrite(int filedes, void *writebuffer);
+void safewritetext(int filedes, char *writebuffer);
 void safewritecommand(int filedes, void *writebuffer);
+void sendtext(char *texttosend, char *textbuffer, unsigned int target_id);
 void *safemalloc (unsigned int sz);
 void *saferealloc (void *buffer, unsigned int sz);
+char *safestrcpy(char **dest, char **src);
 
 
 typedef struct CommandMessage

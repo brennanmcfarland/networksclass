@@ -19,9 +19,15 @@ struct protoent *protoinfo;
 
 CommandMessage inputbuffer; //input from the server
 CommandMessage outputbuffer; //output to the server
-char textbuffer[TEXTBUFLEN]; //pure text output to the server
-char *userinputbuffer; //input from the user
-char *textinputbuffer; //text data input from the server
+
+//char *textoutputbufferstr = "";
+char *textoutputbuffer = ""; //pure text output to the server
+//char textinputbuffer[TEXTBUFLEN]; //pure text input from the server
+//char *textinputbufferstr = "";
+char *textinputbuffer = "";
+//char *userinputbufferstr = "";
+char userinputbuffer[SCANBUFFERINITSIZE]; //input from the user
+char *useroutputbuffer = ""; //output to display from the user
 
 int sd, ret;
 int client_id;
@@ -42,7 +48,7 @@ void sendcommandmessage(unsigned int command_id, unsigned int target_id)
 
 
 //generate a unique id for the client and send it to the server
-unsigned int generateclient_id(char **client_name)
+unsigned int generateclient_id(char *client_name)
 {
   //message the server
   CommandMessage message_generate_id = *(CommandMessage *)safemalloc(sizeof(CommandMessage));
@@ -51,22 +57,13 @@ unsigned int generateclient_id(char **client_name)
   message_generate_id.target_id = FALSE;
   strcpy(message_generate_id.target_name, "");
   message_generate_id.client_id = FALSE;
-  strcpy(message_generate_id.client_name, *client_name);
+  strcpy(message_generate_id.client_name, client_name);
   safewritecommand(sd, (void *)&message_generate_id);
 
   //and wait for the id as a response
   return 1;
 }
 
-//wait for the server to respond with a message
-void waitforserverresponse(int filedes, void *readbuffer)
-{
-  while(1 == 1)
-  {
-    if(saferead(filedes, readbuffer) != 0)
-      return;
-  }
-}
 /*
 void waitforservertext(int filedes)
 {
@@ -88,21 +85,29 @@ void waitforservertext(int filedes)
   textinputbuffer = saferealloc(strbuffer, sizeof(char)*lenofstr);
 }
 */
-void safescanf(char **buffer)
+void safescanf(char *buffer)
 {
   int scanbuffersize = SCANBUFFERINITSIZE;
-  char *strbuffer;
-  int nextchar;
-  size_t lenofstr = 0;
-  strbuffer = saferealloc(NULL, sizeof(char)*scanbuffersize);//size is start size
-  while(EOF!=(nextchar=fgetc(stdin)) && nextchar != '\n'){
-      strbuffer[lenofstr++]=nextchar;
-      if(lenofstr==scanbuffersize){
-          strbuffer = saferealloc(strbuffer, sizeof(char)*(scanbuffersize+=16));
-      }
-  }
-  strbuffer[lenofstr++]='\0';
-  *buffer = saferealloc(strbuffer, sizeof(char)*lenofstr);
+  //char strbuffer[SCANBUFFERINITSIZE];
+  //size_t lenofstr = 0;
+  //strbuffer = safemalloc(sizeof(char)*scanbuffersize);//size is start size
+  fgets(buffer, scanbuffersize, stdin);
+
+  //TODO: check for input too large, rn it causes undefined behavior
+  //it needs to clear the buffer or otherwise things get messed up
+  //could use getline() and throw the rest away?
+
+  //strcpy(*buffer, strbuffer);
+  //while(EOF!=(nextchar=fgetc(stdin)) && nextchar != '\n'){
+  //    strbuffer[lenofstr++]=nextchar;
+  //    if(lenofstr==scanbuffersize){
+  //        strbuffer = saferealloc(strbuffer, sizeof(char)*(scanbuffersize+=16));
+  //    }
+  //}
+  //strbuffer[lenofstr++]='\0';
+  //if(strlen(*buffer) == 0)
+    //*buffer = safemalloc(sizeof(char)*lenofstr);
+  //*buffer = saferealloc(strbuffer, sizeof(char)*lenofstr);
 }
 
 int usage (char *progname)
@@ -123,6 +128,10 @@ void init(int argc, char *argv [])
 {
   if (argc != CLIENT_REQUIRED_ARGC)
       usage (argv [0]);
+
+  //textinputbuffer = (char **)safemalloc(sizeof(char[BUFLEN]));
+  textoutputbuffer = (char *)safemalloc(sizeof(char[BUFLEN]));
+  textoutputbuffer = "";
 
   /* lookup the hostname */
   hinfo = gethostbyname (argv [CLIENT_HOST_POS]);

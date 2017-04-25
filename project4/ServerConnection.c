@@ -27,7 +27,8 @@ int sd, sd2;
 
 CommandMessage inputbuffer; //input from clients
 CommandMessage outputbuffer; //output to a client
-char textbuffer[TEXTBUFLEN]; //pure text output to a client
+char *textoutputbuffer; //pure text output to a client
+char *textinputbuffer; //pure text input from a client
 
 unsigned int currentclient_id; //id of the current client, to be replaced if handled in parallel
 
@@ -59,29 +60,6 @@ unsigned int generateclient_id(char **client_name)
 }
 */
 
-/*
-  TODO: finish this function and add a corresponding one for the client,
-  right now this is just a "first draft"
-  call it to use for sending chunks of text, ie list files, also refactor
-  to have separate server and ServerConnection
-*/
-//send text to a client
-void sendtext(char **texttosend, unsigned int target_id)
-{
-  int substrindex = 0;
-  //while there's still text left to send
-  while(substrindex < strlen(*texttosend))
-  {
-    //take a substring and send it
-    memcpy(textbuffer, texttosend[substrindex], strlen(textbuffer)-1);
-    textbuffer[strlen(textbuffer)-1] = '\0'; //null terminator
-    safewrite(target_id, (void *)&textbuffer);
-    substrindex += strlen(textbuffer);
-  }
-  //send EOF at the end to indicate it's done
-  safewrite(target_id, EOF, (void *)&textbuffer);
-  //may need to clear the arg buffer when done, or do that outside function
-}
 
 //this is only useful if there's multiple parallel connections, so for now it's pointless
 unsigned int generateclient_id(char **client_name)
@@ -100,7 +78,8 @@ void listfiles(unsigned int clientid)
       buffer, with an EOF appended to the end
   */
   printf("%s", filelist);
-  safewrite(clientid, (void *)&filelist);
+  sendtext(filelist, textoutputbuffer, clientid);
+  //safewrite(clientid, (void *)&filelist);
 }
 
 //read the list of files from file
@@ -143,21 +122,10 @@ void readfilelist()
   closedir(dirptr);
 }
 
-//wait for the client to respond with a message
-void waitforclientresponse(int filedes, void *readbuffer)
-{
-
-  while(1 == 1)
-  {
-    if(safereadcommand(filedes, readbuffer) != 0)
-      return;
-  }
-}
-
 void handleconnection(int sd)
 {
   /* ask for login information and wait for response*/
-  waitforclientresponse(sd, (void *)&inputbuffer);
+  awaitresponse(sd, (void *)&inputbuffer);
   CommandMessage message_generate_id = inputbuffer;
   if(message_generate_id.command_id != CMDID_GENERATECLIENTID)
     errexit("error generating user id", NULL);
@@ -168,7 +136,7 @@ void handleconnection(int sd)
   while(1 == 1)
   {
     memset((void *)&inputbuffer, FALSE, sizeof(CommandMessage));
-    waitforclientresponse(sd, (void *)&inputbuffer);
+    awaitresponse(sd, (void *)&inputbuffer);
     CommandMessage commandmessage = inputbuffer;
 
     if(commandmessage.command_id == CMDID_LISTFILES)
@@ -215,6 +183,12 @@ void safefileopen(FILE **filestream, char *filename, char filemode)
 //initialize the client-server connection
 void init(int argc, char *argv [])
 {
+
+  textinputbuffer = (char *)safemalloc(sizeof(char[BUFLEN]));
+  textinputbuffer = "";
+  textoutputbuffer = (char *)safemalloc(sizeof(char[BUFLEN]));
+  textoutputbuffer = "";
+
   if (argc != SERVER_REQUIRED_ARGC)
       usage (argv [0]);
 
