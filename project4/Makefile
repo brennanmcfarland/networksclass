@@ -1,7 +1,7 @@
 
 CFLAGS=-g -Wall -Werror
 
-TARGETS=ClientConnection ServerConnection
+TARGETS=Client Server
 
 all: $(TARGETS)
 

@@ -16,6 +16,9 @@ char *getcommand_name(unsigned int command_id)
     case 34:
       return "LIST-FILES";
       break;
+    case 36:
+      return "READ-FILE";
+      break;
     case 99:
       return "QUIT";
       break;

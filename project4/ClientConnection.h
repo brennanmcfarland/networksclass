@@ -6,7 +6,7 @@
 #define CLIENT_BUFLEN 1024
 #define SCANBUFFERINITSIZE 1024
 
-void sendcommandmessage(unsigned int command_id, unsigned int target_id);
+void sendcommandmessage(unsigned int command_id, unsigned int target_id, char *target_name);
 void promptuser(char *inputmessage);
 unsigned int generateclient_id(char *client_name);
 //void waitforservertext(int filedes);

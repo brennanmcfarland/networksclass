@@ -12,6 +12,7 @@
 
 #define CMDID_GENERATECLIENTID 32
 #define CMDID_LISTFILES 34
+#define CMDID_READFILE 36
 #define CMDID_QUIT 99
 
 char *getcommand_name(unsigned int command_id);

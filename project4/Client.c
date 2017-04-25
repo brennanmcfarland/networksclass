@@ -28,14 +28,14 @@ void parseuserinput()
 {
   if(strncmp(userinputbuffer, "quit", sizeof("quit")-1) == 0)
   {
-    sendcommandmessage(CMDID_QUIT, FALSE);
+    sendcommandmessage(CMDID_QUIT, FALSE, FALSE);
     printf("Goodbye\n");
     close(sd);
     exit(0);
   }
   else if(strncmp(userinputbuffer, "list files", sizeof("list files")-1) == 0)
   {
-    sendcommandmessage(CMDID_LISTFILES, FALSE);
+    sendcommandmessage(CMDID_LISTFILES, FALSE, FALSE);
     useroutputbuffer = receivetext(textinputbuffer, useroutputbuffer, sd);
     printf("\n%s", useroutputbuffer);
     //waitforservertext(sd);
@@ -43,6 +43,12 @@ void parseuserinput()
     //void receivetext(sd, textinputbuffer, unsigned int target_id);
     //printf("finished getting text from server\n");
     //awaitresponse(sd, textinputbuffer); //probably wont work, buffer not inited
+  }
+  else if(strncmp(userinputbuffer, "read ", sizeof("read ")-1) == 0)
+  {
+    sendcommandmessage(CMDID_READFILE, FALSE, userinputbuffer+sizeof("read "));
+    useroutputbuffer = receivetext(textinputbuffer, useroutputbuffer, sd);
+    printf("\n%s", useroutputbuffer);
   }
   else
   {

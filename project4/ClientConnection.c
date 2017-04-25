@@ -34,13 +34,14 @@ int client_id;
 char *client_name;
 
 //send a command
-void sendcommandmessage(unsigned int command_id, unsigned int target_id)
+void sendcommandmessage(unsigned int command_id, unsigned int target_id, char *target_name)
 {
   CommandMessage commandmessage = *(CommandMessage *)safemalloc(sizeof(CommandMessage));
   commandmessage.command_id = command_id;
   strcpy(commandmessage.command_name, getcommand_name(commandmessage.command_id));
   commandmessage.target_id = target_id;
-  strcpy(commandmessage.target_name, ""); //TODO: make this something valid
+  if(target_name != NULL && strlen(target_name) != 0)
+    strcpy(commandmessage.target_name, target_name);
   commandmessage.client_id = client_id;
   strcpy(commandmessage.client_name, client_name);
   safewritecommand(sd, (void *)&commandmessage);
