@@ -53,12 +53,13 @@ int safereadcommand(int filedes, void *readbuffer)
   return readresult;
 }
 
-void receivetext(char *texttoreceive, char *textbuffer, int source_id)
+char *receivetext(char *texttoreceive, char *textbuffer, int source_id)
 {
-  //int strleng = 46;
-  textbuffer = (char *)safemalloc(46);
+  //TODO: this may overflow with too big input
+  textbuffer = (char *)safemalloc(4096);
   awaitresponse(source_id, (void *)textbuffer); //after this it can no longer access the memory in textbuffer
   //printf("received the following:%s\n", (char *)textbuffer);
+  return (char *)textbuffer;
 }
 
 /*

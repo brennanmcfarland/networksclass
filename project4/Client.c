@@ -36,13 +36,12 @@ void parseuserinput()
   else if(strncmp(userinputbuffer, "list files", sizeof("list files")-1) == 0)
   {
     sendcommandmessage(CMDID_LISTFILES, FALSE);
-    receivetext(textinputbuffer, useroutputbuffer, sd);
-    printf("\n%s\n", useroutputbuffer);
+    useroutputbuffer = receivetext(textinputbuffer, useroutputbuffer, sd);
+    printf("\n%s", useroutputbuffer);
     //waitforservertext(sd);
     //awaitresponse(sd, textbuffer);
     //void receivetext(sd, textinputbuffer, unsigned int target_id);
-    printf("%s", (char *)useroutputbuffer);
-    printf("finished getting text from server\n");
+    //printf("finished getting text from server\n");
     //awaitresponse(sd, textinputbuffer); //probably wont work, buffer not inited
   }
   else
