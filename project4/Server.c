@@ -10,6 +10,7 @@ void sendfile(char *filename, unsigned int clientid)
 {
   FILE *sendingfilestream;
   char filepath[strlen(filename)+strlen(FILESDIRECTORY)];
+  filepath[0] = '\0';
   strcat((char *)filepath, FILESDIRECTORY);
   strcat((char *)filepath, filename);
   filepath[strlen(filepath)-1] = '\0';
@@ -30,9 +31,10 @@ void sendfile(char *filename, unsigned int clientid)
   //}
   //else
   //{
-    safefileopen(&sendingfilestream, (char *)filepath+1, 'r');
+    safefileopen(&sendingfilestream, (char *)filepath, 'r');
     safefileread(sendingfilestream, (void *)filecontents, MAXFILEREADSIZE);
     sendtext(filecontents, textoutputbuffer, clientid);
+    safefileclose(&sendingfilestream);
   //}
 }
 

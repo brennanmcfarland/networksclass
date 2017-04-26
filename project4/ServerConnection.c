@@ -101,6 +101,15 @@ void safefileopen(FILE **filestream, char *filename, char filemode)
   }
 }
 
+void safefileclose(FILE **filestream)
+{
+  if(fclose(*filestream) != 0)
+  {
+    printf("Error: Unable to close file.\n");
+    exit(EXIT_ERRORCODE);
+  }
+}
+
 //initialize the client-server connection
 void init(int argc, char *argv [])
 {
