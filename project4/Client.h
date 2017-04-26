@@ -21,7 +21,8 @@
   "poke around.\n"
 #define STRING_COMMANDLIST "\nList of things you can do:\n"\
   "quit - terminate the connection\n"\
-  "list files - display the list of readable files"
+  "list files - display the list of readable files\n"\
+  "read [filename] - read the contents of a file"
 
 void promptcommandlist();
 void promptuser(char *inputmessage);

@@ -96,7 +96,7 @@ void safefileopen(FILE **filestream, char *filename, char filemode)
   char *filemodeptr = &filemode;
   if((*filestream = fopen(filename,filemodeptr)) == NULL)
   {
-    printf("Error: Unable to read from file.\n");
+    printf("Error: Unable to read from file %s.\n", filename);
     exit(EXIT_ERRORCODE);
   }
 }

@@ -9,6 +9,8 @@
 #define IDNAMEMAPTABLECAPACITY 16
 #define IDNAMEMAPTABLEGROWTHFACTOR 2
 #define MAXCOMMANDNAMESIZE 32
+#define MAXFILEREADSIZE 4096
+
 
 #define CMDID_GENERATECLIENTID 32
 #define CMDID_LISTFILES 34
@@ -18,6 +20,7 @@
 char *getcommand_name(unsigned int command_id);
 void awaitresponse(int filedes, void *readbuffer);
 int saferead(int filedes, void *readbuffer);
+int safereadtext(int filedes, void *readbuffer);
 int safereadcommand(int filedes, void *readbuffer);
 char *receivetext(char *texttoreceive, char *textbuffer, int source_id);
 void safewrite(int filedes, void *writebuffer);

@@ -37,6 +37,15 @@ void awaitresponse(int filedes, void *readbuffer)
   }
 }
 
+void awaittext(int filedes, void *readbuffer)
+{
+  while(1==1)
+  {
+    if(safereadtext(filedes, readbuffer) != 0)
+      return;
+  }
+}
+
 int saferead(int filedes, void *readbuffer)
 {
   memset (readbuffer,FALSE,BUFLEN);
@@ -45,6 +54,16 @@ int saferead(int filedes, void *readbuffer)
   if (readresult < 0)
     errexit ("reading error",NULL);
   return readresult;
+}
+
+int safereadtext(int filedes, void *readbuffer)
+{
+  memset(readbuffer,FALSE,MAXFILEREADSIZE);
+  int temp = read (filedes, readbuffer, MAXFILEREADSIZE);
+  if (temp < 0)
+    errexit ("error reading message: %s", readbuffer);
+  printf("read %d bytes of text\n", temp);
+  return temp;
 }
 
 int safereadcommand(int filedes, void *readbuffer)
@@ -60,7 +79,7 @@ char *receivetext(char *texttoreceive, char *textbuffer, int source_id)
 {
   //TODO: this may overflow with too big input
   textbuffer = (char *)safemalloc(4096);
-  awaitresponse(source_id, (void *)textbuffer); //after this it can no longer access the memory in textbuffer
+  awaittext(source_id, (void *)textbuffer); //after this it can no longer access the memory in textbuffer
   //printf("received the following:%s\n", (char *)textbuffer);
   return (char *)textbuffer;
 }
@@ -108,7 +127,7 @@ void safewritetext(int filedes, char *writebuffer)
   int temp;
   if ((temp = write (filedes, writebuffer, lentowrite)) < 0)
     errexit ("error writing message: %s", writebuffer);
-  //printf("wrote %d bytes\n", temp);
+  printf("wrote %d bytes of text\n", temp);
 }
 
 void safewritecommand(int filedes, void *writebuffer)

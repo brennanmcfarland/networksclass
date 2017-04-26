@@ -2,16 +2,38 @@
 #include "ServerConnection.c"
 
 char *filelist; //string holding the list of readable files
-char *filecontents; //string holding the contents of a file
+char filecontents[MAXFILEREADSIZE]; //string holding the contents of a file
 
 
 //send the contents of one file
-void sendfile(char *filename)
+void sendfile(char *filename, unsigned int clientid)
 {
   FILE *sendingfilestream;
-  safefileopen(&sendingfilestream, filename, 'r');
-  safefileread(sendingfilestream, (void *)filecontents, MAXFILEREADSIZE);
-  sendtext(filecontents, textoutputbuffer, currentclient_id);
+  char filepath[strlen(filename)+strlen(FILESDIRECTORY)];
+  strcat((char *)filepath, FILESDIRECTORY);
+  strcat((char *)filepath, filename);
+  filepath[strlen(filepath)-1] = '\0';
+
+  /*
+    TODO: get the below commented out code to actually work so it checks if the
+    file is there
+  */
+
+  /*
+    TODO: reading from different files consecutively doesn't work, fix
+  */
+  //check if the file exists and the user can open it
+  //if(access((char *)filepath+1, F_OK) == -1)
+  //{
+  //  strcpy(filecontents, "Error: The file either does not exist or cannot be accessed");
+  //  sendtext(filecontents, textoutputbuffer, clientid);
+  //}
+  //else
+  //{
+    safefileopen(&sendingfilestream, (char *)filepath+1, 'r');
+    safefileread(sendingfilestream, (void *)filecontents, MAXFILEREADSIZE);
+    sendtext(filecontents, textoutputbuffer, clientid);
+  //}
 }
 
 //send the list of readable files
@@ -84,7 +106,7 @@ void handleconnection(int sd)
     if(commandmessage.command_id == CMDID_QUIT)
       return;
     if(commandmessage.command_id == CMDID_READFILE)
-      sendfile(commandmessage.target_name);
+      sendfile(commandmessage.target_name, sd2);
   }
 }
 

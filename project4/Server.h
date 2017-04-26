@@ -1,5 +1,6 @@
-#define MAXFILEREADSIZE 4096
+#define FILESDIRECTORY "files/"
 
+void sendfile(char *filename, unsigned int clientid);
 void listfiles(unsigned int clientid);
 void readfilelist();
 void handleconnection(int sd);

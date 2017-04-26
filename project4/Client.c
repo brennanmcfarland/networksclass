@@ -46,7 +46,7 @@ void parseuserinput()
   }
   else if(strncmp(userinputbuffer, "read ", sizeof("read ")-1) == 0)
   {
-    sendcommandmessage(CMDID_READFILE, FALSE, userinputbuffer+sizeof("read "));
+    sendcommandmessage(CMDID_READFILE, FALSE, userinputbuffer+sizeof("read"));
     useroutputbuffer = receivetext(textinputbuffer, useroutputbuffer, sd);
     printf("\n%s", useroutputbuffer);
   }
