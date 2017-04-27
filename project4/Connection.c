@@ -1,6 +1,9 @@
 
 #include "Connection.h"
 
+char *filelist; //string holding the list of readable files
+char filecontents[MAXFILEREADSIZE]; //string holding the contents of a file
+
 
 char *getcommand_name(unsigned int command_id)
 {
@@ -44,6 +47,38 @@ void awaittext(int filedes, void *readbuffer)
     if(safereadtext(filedes, readbuffer) != 0)
       return;
   }
+}
+
+//send the contents of one file
+void sendfile(char *filename, char *buffer, char *filecontents,
+  unsigned int clientid, char *directory)
+{
+  FILE *sendingfilestream;
+  char filepath[strlen(filename)+strlen(directory)];
+  filepath[0] = '\0';
+  strcat((char *)filepath, directory);
+  strcat((char *)filepath, filename);
+  filepath[strlen(filepath)-1] = '\0';
+
+  /*
+    TODO: get the below commented out code to actually work so it checks if the
+    file is there
+  */
+  //check if the file exists and the user can open it
+  //if(access((char *)filepath+1, F_OK) == -1)
+  //{
+  //  strcpy(filecontents, "Error: The file either does not exist or cannot be accessed");
+  //  sendtext(filecontents, textoutputbuffer, clientid);
+  //}
+  //else
+  //{
+    safefileopen(&sendingfilestream, (char *)filepath, 'r');
+    safefileread(sendingfilestream, (void *)filecontents, MAXFILEREADSIZE);
+    sendtext(filecontents, buffer, clientid);
+    safefileclose(&sendingfilestream);
+  //}
+  memset(filecontents, FALSE, strlen(filecontents));
+  memset(buffer, FALSE, strlen(buffer));
 }
 
 int saferead(int filedes, void *readbuffer)
@@ -136,15 +171,46 @@ void safewritecommand(int filedes, void *writebuffer)
     errexit ("error writing message: %s", writebuffer);
 }
 
-/*
-  TODO: write appendtext function to take care of appending text + reallocating strings
-*/
+int safefileread(FILE *filestream, void *readbuffer, int readbuffersize)
+{
+  int readresult = fread(readbuffer,BYTESIZE,readbuffersize,filestream);
+  if(readresult == FALSE && ferror(filestream) != FALSE)
+  {
+    printf("Error reading from file.\n");
+    exit(EXIT_ERRORCODE);
+  }
+  return readresult;
+}
 
-//send text across the network, sends chunk by chunk to textbuffer for transmission
-/*
-  maybe I need to set the byte order?
+int safefilewrite(FILE *filestream, void *writebuffer, int writebuffersize)
+{
+  int writeresult = fwrite(writebuffer, 1, writebuffersize, filestream);
+  if(writeresult == FALSE && ferror(filestream) != FALSE)
+  {
+    printf("Error writing to file.\n");
+    exit(EXIT_ERRORCODE);
+  }
+  return writeresult;
+}
 
-*/
+void safefileopen(FILE **filestream, char *filename, char filemode)
+{
+  char *filemodeptr = &filemode;
+  if((*filestream = fopen(filename,filemodeptr)) == NULL)
+  {
+    printf("Error: Unable to open file %s.\n", filename);
+    exit(EXIT_ERRORCODE);
+  }
+}
+
+void safefileclose(FILE **filestream)
+{
+  if(fclose(*filestream) != 0)
+  {
+    printf("Error: Unable to close file.\n");
+    exit(EXIT_ERRORCODE);
+  }
+}
 
 void sendtext(char *texttosend, char *textbuffer, unsigned int target_id)
 {

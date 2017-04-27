@@ -80,36 +80,6 @@ int errexit (char *format, char *arg)
     exit (EXIT_ERRORCODE);
 }
 
-int safefileread(FILE *filestream, void *readbuffer, int readbuffersize)
-{
-  int readresult = fread(readbuffer,BYTESIZE,readbuffersize,filestream);
-  if(readresult == FALSE && ferror(filestream) != FALSE)
-  {
-    printf("Error reading from file.\n");
-    exit(EXIT_ERRORCODE);
-  }
-  return readresult;
-}
-
-void safefileopen(FILE **filestream, char *filename, char filemode)
-{
-  char *filemodeptr = &filemode;
-  if((*filestream = fopen(filename,filemodeptr)) == NULL)
-  {
-    printf("Error: Unable to read from file %s.\n", filename);
-    exit(EXIT_ERRORCODE);
-  }
-}
-
-void safefileclose(FILE **filestream)
-{
-  if(fclose(*filestream) != 0)
-  {
-    printf("Error: Unable to close file.\n");
-    exit(EXIT_ERRORCODE);
-  }
-}
-
 //initialize the client-server connection
 void init(int argc, char *argv [])
 {

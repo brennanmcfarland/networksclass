@@ -60,10 +60,25 @@ void parseuserinput()
     useroutputbuffer = receivetext(textinputbuffer, useroutputbuffer, sd);
     printf("\n%s", useroutputbuffer);
   }
+  //TODO: put this in a separate function
   else if(strncmp(userinputbuffer, "write ", sizeof("write ")-1) == 0)
   {
+    char *filename = userinputbuffer+sizeof("write");
     //notify the server that it is about to receive a file
-    sendcommandmessage(CMDID_WRITEFILE, FALSE, userinputbuffer+sizeof("write"));
+    sendcommandmessage(CMDID_WRITEFILE, FALSE, filename);
+    //read the contents of the file into filecontents
+    FILE *sendingfilestream;
+    char filepath[strlen(filename)+strlen(FILESDIRECTORY)];
+    filepath[0] = '\0';
+    strcat((char *)filepath, FILESDIRECTORY);
+    strcat((char *)filepath, filename);
+    filepath[strlen(filepath)-1] = '\0';
+
+    safefileopen(&sendingfilestream, filepath, 'r');
+    safefileread(sendingfilestream, filecontents, MAXFILEREADSIZE);
+    //and send it over the network
+    sendfile(filename, textoutputbuffer, filecontents,
+      sd, FILESDIRECTORY);
   }
   else
   {

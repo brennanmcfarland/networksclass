@@ -20,6 +20,9 @@
 
 char *getcommand_name(unsigned int command_id);
 void awaitresponse(int filedes, void *readbuffer);
+void awaittext(int filedes, void *readbuffer);
+void sendfile(char *filename, char *buffer, char *filecontents,
+  unsigned int clientid, char *directory);
 int saferead(int filedes, void *readbuffer);
 int safereadtext(int filedes, void *readbuffer);
 int safereadcommand(int filedes, void *readbuffer);
@@ -27,6 +30,10 @@ char *receivetext(char *texttoreceive, char *textbuffer, int source_id);
 void safewrite(int filedes, void *writebuffer);
 void safewritetext(int filedes, char *writebuffer);
 void safewritecommand(int filedes, void *writebuffer);
+int safefileread(FILE *filestream, void *readbuffer, int readbuffersize);
+int safefilewrite(FILE *filestream, void *writebuffer, int writebuffersize);
+void safefileopen(FILE **filestream, char *filename, char filemode);
+void safefileclose(FILE **filestream);
 void sendtext(char *texttosend, char *textbuffer, unsigned int target_id);
 void *safemalloc (unsigned int sz);
 void *saferealloc (void *buffer, unsigned int sz);

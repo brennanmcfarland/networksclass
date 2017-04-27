@@ -1,51 +1,24 @@
 #include "Server.h"
 #include "ServerConnection.c"
 
-char *filelist; //string holding the list of readable files
-char filecontents[MAXFILEREADSIZE]; //string holding the contents of a file
 
-
-//send the contents of one file
-void sendfile(char *filename, unsigned int clientid)
+void receivefile(char *filename, int sd)
 {
-  FILE *sendingfilestream;
+  //wait to receive the file text from the client
+  receivetext(filecontents, filecontents, sd);
+
+  //write that text to a file in FILESDIRECTORY with the name filename
+  //overwrite if necessary
+  FILE *writingfilestream;
   char filepath[strlen(filename)+strlen(FILESDIRECTORY)];
   filepath[0] = '\0';
   strcat((char *)filepath, FILESDIRECTORY);
   strcat((char *)filepath, filename);
   filepath[strlen(filepath)-1] = '\0';
 
-  /*
-    TODO: get the below commented out code to actually work so it checks if the
-    file is there
-  */
-  //check if the file exists and the user can open it
-  //if(access((char *)filepath+1, F_OK) == -1)
-  //{
-  //  strcpy(filecontents, "Error: The file either does not exist or cannot be accessed");
-  //  sendtext(filecontents, textoutputbuffer, clientid);
-  //}
-  //else
-  //{
-    safefileopen(&sendingfilestream, (char *)filepath, 'r');
-    safefileread(sendingfilestream, (void *)filecontents, MAXFILEREADSIZE);
-    sendtext(filecontents, textoutputbuffer, clientid);
-    safefileclose(&sendingfilestream);
-  //}
-  memset(filecontents, FALSE, strlen(filecontents));
-  memset(textoutputbuffer, FALSE, strlen(textoutputbuffer));
-}
-
-void receivefile(char *filename, int sd)
-{
-  //wait to receive the file text from the client
-  filecontents = receivetext(filecontents, filecontents, sd);
-
-  //write that text to a file in FILESDIRECTORY with the name filename
-  //overwrite if necessary
-  FILE *writingfilestream;
-
   safefileopen(&writingfilestream, (char *)filepath, 'w');
+  safefilewrite(writingfilestream, (char *)filepath, strlen(filepath));
+  safefileclose(&writingfilestream);
 }
 
 //send the list of readable files
@@ -118,7 +91,8 @@ void handleconnection(int sd)
     if(commandmessage.command_id == CMDID_QUIT)
       return;
     if(commandmessage.command_id == CMDID_READFILE)
-      sendfile(commandmessage.target_name, sd2);
+      sendfile(commandmessage.target_name, textoutputbuffer, filecontents,
+        sd2, FILESDIRECTORY);
     if(commandmessage.command_id == CMDID_WRITEFILE)
       receivefile(commandmessage.target_name, sd2);
   }

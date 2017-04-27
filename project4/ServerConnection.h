@@ -10,7 +10,4 @@
 unsigned int generateclient_id(char **client_name);
 int usage (char *progname);
 int errexit (char *format, char *arg);
-int safefileread(FILE *filestream, void *readbuffer, int readbuffersize);
-void safefileopen(FILE **filestream, char *filename, char filemode);
-void safefileclose(FILE **filestream);
 void init(int argc, char *argv []);
