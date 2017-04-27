@@ -16,27 +16,14 @@ void promptuser(char *inputmessage)
 {
   printf("%s\n", inputmessage);
   safescanf(userinputbuffer);
-
   /*
-    TODO: why is it not flushing the buffer?  change SCANBUFFERINITSIZE to
-    something small to test it
-  */
-  if(strlen(userinputbuffer) >= SCANBUFFERINITSIZE)
+  if(strlen(userinputbuffer) >= SCANBUFFERINITSIZE-1)
   {
-    printf("Input size out of range.  Please try again: ");
-    //userinputbuffer = "";
-    do
-    {
-      fflush(stdin);
-      safescanf(userinputbuffer);
-      fflush(stdin);
-    }while(strlen(userinputbuffer) >= SCANBUFFERINITSIZE);
-    fflush(stdin);
-    safescanf(userinputbuffer);
-    fflush(stdin);
-    memset(userinputbuffer, FALSE, SCANBUFFERINITSIZE);
+    printf("Input size out of range.  You crashed it, genius");
+    char c;
+    while ((c = getchar()) != '\n' && c != EOF);
   }
-  printf("USER INPUT BUFFER CONTAINS: %s\n", userinputbuffer);
+  printf("USER INPUT BUFFER CONTAINS: %s\n\n", userinputbuffer);*/
 }
 
 void parseuserinput()

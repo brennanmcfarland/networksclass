@@ -65,50 +65,23 @@ unsigned int generateclient_id(char *client_name)
   return 1;
 }
 
-/*
-void waitforservertext(int filedes)
-{
-  //safescanf(&textinputbuffer);
-  int scanbuffersize = SCANBUFFERINITSIZE;
-  char *strbuffer;
-  int nextchar;
-  size_t lenofstr = 0;
-  strbuffer = saferealloc(NULL, sizeof(char)*scanbuffersize);//size is start size
-  const char filemode_read = 'r';
-  printf("%c\n", fgetc(fdopen(filedes, &filemode_read)));
-  while(EOF!=(nextchar=fgetc(fdopen(filedes, &filemode_read))) && nextchar != '\n'){
-      strbuffer[lenofstr++]=nextchar;
-      if(lenofstr==scanbuffersize){
-          strbuffer = saferealloc(strbuffer, sizeof(char)*(scanbuffersize+=16));
-      }
-  }
-  strbuffer[lenofstr++]='\0';
-  textinputbuffer = saferealloc(strbuffer, sizeof(char)*lenofstr);
-}
-*/
-void safescanf(char *buffer)
+//returns TRUE on error
+int safescanf(char *buffer)
 {
   int scanbuffersize = SCANBUFFERINITSIZE;
-  //char strbuffer[SCANBUFFERINITSIZE];
-  //size_t lenofstr = 0;
-  //strbuffer = safemalloc(sizeof(char)*scanbuffersize);//size is start size
   fgets(buffer, scanbuffersize, stdin);
 
-  //TODO: check for input too large, rn it causes undefined behavior
-  //it needs to clear the buffer or otherwise things get messed up
-  //could use getline() and throw the rest away?
-
-  //strcpy(*buffer, strbuffer);
-  //while(EOF!=(nextchar=fgetc(stdin)) && nextchar != '\n'){
-  //    strbuffer[lenofstr++]=nextchar;
-  //    if(lenofstr==scanbuffersize){
-  //        strbuffer = saferealloc(strbuffer, sizeof(char)*(scanbuffersize+=16));
-  //    }
-  //}
-  //strbuffer[lenofstr++]='\0';
-  //if(strlen(*buffer) == 0)
-    //*buffer = safemalloc(sizeof(char)*lenofstr);
-  //*buffer = saferealloc(strbuffer, sizeof(char)*lenofstr);
+  //check for overly large input
+  if(strlen(buffer) >= SCANBUFFERINITSIZE-1)
+  {
+    printf("Input size out of range.  Please try again:\n");
+    char c;
+    while ((c = getchar()) != '\n');
+    safescanf(buffer);
+    return TRUE;
+  }
+  //printf("USER INPUT BUFFER CONTAINS: %s\n\n", buffer);
+  return FALSE;
 }
 
 int usage (char *progname)
