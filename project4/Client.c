@@ -16,12 +16,27 @@ void promptuser(char *inputmessage)
 {
   printf("%s\n", inputmessage);
   safescanf(userinputbuffer);
-  while(strlen(userinputbuffer) > MAXCOMMANDNAMESIZE)
+
+  /*
+    TODO: why is it not flushing the buffer?  change SCANBUFFERINITSIZE to
+    something small to test it
+  */
+  if(strlen(userinputbuffer) >= SCANBUFFERINITSIZE)
   {
     printf("Input size out of range.  Please try again: ");
     //userinputbuffer = "";
+    do
+    {
+      fflush(stdin);
+      safescanf(userinputbuffer);
+      fflush(stdin);
+    }while(strlen(userinputbuffer) >= SCANBUFFERINITSIZE);
+    fflush(stdin);
     safescanf(userinputbuffer);
+    fflush(stdin);
+    memset(userinputbuffer, FALSE, SCANBUFFERINITSIZE);
   }
+  printf("USER INPUT BUFFER CONTAINS: %s\n", userinputbuffer);
 }
 
 void parseuserinput()
@@ -38,17 +53,17 @@ void parseuserinput()
     sendcommandmessage(CMDID_LISTFILES, FALSE, FALSE);
     useroutputbuffer = receivetext(textinputbuffer, useroutputbuffer, sd);
     printf("\n%s", useroutputbuffer);
-    //waitforservertext(sd);
-    //awaitresponse(sd, textbuffer);
-    //void receivetext(sd, textinputbuffer, unsigned int target_id);
-    //printf("finished getting text from server\n");
-    //awaitresponse(sd, textinputbuffer); //probably wont work, buffer not inited
   }
   else if(strncmp(userinputbuffer, "read ", sizeof("read ")-1) == 0)
   {
     sendcommandmessage(CMDID_READFILE, FALSE, userinputbuffer+sizeof("read"));
     useroutputbuffer = receivetext(textinputbuffer, useroutputbuffer, sd);
     printf("\n%s", useroutputbuffer);
+  }
+  else if(strncmp(userinputbuffer, "write ", sizeof("write ")-1) == 0)
+  {
+    //notify the server that it is about to receive a file
+    sendcommandmessage(CMDID_WRITEFILE, FALSE, userinputbuffer+sizeof("write"));
   }
   else
   {
@@ -72,20 +87,11 @@ int main (int argc, char *argv [])
   printf("Client recognizes user: %s\n", userinputbuffer);
   printf(STRING_WELCOMEMESSAGE);
 
-  //TODO: add an exit condition
   /* main loop */
   while(1 == 1)
   {
     promptcommandlist();
     parseuserinput();
-    //awaitresponse(sd, (void *)&inputbuffer);
-    /* capture and print whatever the server provides */
-    //saferead(sd, (void *)&inputbuffer);
-    /*
-      NEED TO ACTUALLY PRINT THE OUTPUT SO THE USER CAN SEE IT
-      then fix problem with segfault when trying to read whole thing
-    */
-
   }
 
   /* close & exit */

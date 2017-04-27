@@ -19,10 +19,6 @@ void sendfile(char *filename, unsigned int clientid)
     TODO: get the below commented out code to actually work so it checks if the
     file is there
   */
-
-  /*
-    TODO: reading from different files consecutively doesn't work, fix
-  */
   //check if the file exists and the user can open it
   //if(access((char *)filepath+1, F_OK) == -1)
   //{
@@ -36,6 +32,20 @@ void sendfile(char *filename, unsigned int clientid)
     sendtext(filecontents, textoutputbuffer, clientid);
     safefileclose(&sendingfilestream);
   //}
+  memset(filecontents, FALSE, strlen(filecontents));
+  memset(textoutputbuffer, FALSE, strlen(textoutputbuffer));
+}
+
+void receivefile(char *filename, int sd)
+{
+  //wait to receive the file text from the client
+  filecontents = receivetext(filecontents, filecontents, sd);
+
+  //write that text to a file in FILESDIRECTORY with the name filename
+  //overwrite if necessary
+  FILE *writingfilestream;
+
+  safefileopen(&writingfilestream, (char *)filepath, 'w');
 }
 
 //send the list of readable files
@@ -53,7 +63,7 @@ void readfilelist()
   DIR *dirptr; //pointer to the directory
   struct dirent *direntry; //pointer to the current entry in the directory
   struct stat filestat; //the file status
-  char *currentdirectory = "files";
+  char *currentdirectory = FILESDIRECTORY;
 
   if((dirptr = opendir(currentdirectory)) == NULL) {
     errexit("cannot open directory: %s\n", currentdirectory);
@@ -109,6 +119,8 @@ void handleconnection(int sd)
       return;
     if(commandmessage.command_id == CMDID_READFILE)
       sendfile(commandmessage.target_name, sd2);
+    if(commandmessage.command_id == CMDID_WRITEFILE)
+      receivefile(commandmessage.target_name, sd2);
   }
 }
 

@@ -78,7 +78,7 @@ int safereadcommand(int filedes, void *readbuffer)
 char *receivetext(char *texttoreceive, char *textbuffer, int source_id)
 {
   //TODO: this may overflow with too big input
-  textbuffer = (char *)safemalloc(4096);
+  textbuffer = (char *)safemalloc(MAXFILEREADSIZE);
   awaittext(source_id, (void *)textbuffer); //after this it can no longer access the memory in textbuffer
   //printf("received the following:%s\n", (char *)textbuffer);
   return (char *)textbuffer;

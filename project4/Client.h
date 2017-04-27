@@ -1,4 +1,4 @@
-
+#define FILESDIRECTORY "clientfiles/"
 #define INPUT_QUIT "quit"
 
 #define STRING_WELCOMEMESSAGE "\n\n"\
