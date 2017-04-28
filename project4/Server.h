@@ -1,6 +1,6 @@
 #define FILESDIRECTORY "serverfiles/"
 #define LOGSDIRECTORY "serverlogs/"
-#define SESSIONSLOGFILE "sessions.log"
+#define SESSIONSLOGFILE "sessions.log\n"
 #define SESSIONLOGMAXLEN 64
 
 void receivefile(char *filename, int sd);

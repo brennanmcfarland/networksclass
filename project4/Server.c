@@ -120,13 +120,16 @@ void handleconnection(int sd)
 
     if(commandmessage.command_id == CMDID_LISTFILES)
       listfiles(sd2);
-    if(commandmessage.command_id == CMDID_QUIT)
+    else if(commandmessage.command_id == CMDID_QUIT)
       return;
-    if(commandmessage.command_id == CMDID_READFILE)
+    else if(commandmessage.command_id == CMDID_READFILE)
       sendfile(commandmessage.target_name, textoutputbuffer, filecontents,
         sd2, FILESDIRECTORY);
-    if(commandmessage.command_id == CMDID_WRITEFILE)
+    else if(commandmessage.command_id == CMDID_WRITEFILE)
       receivefile(commandmessage.target_name, sd2);
+    else if(commandmessage.command_id == CMDID_READSESSIONLOG)
+      sendfile(SESSIONSLOGFILE, textoutputbuffer, filecontents,
+        sd2, LOGSDIRECTORY);
   }
 }
 

@@ -22,6 +22,12 @@ char *getcommand_name(unsigned int command_id)
     case 36:
       return "READ-FILE";
       break;
+    case 38:
+      return "WRITE-FILE";
+      break;
+    case 40:
+      return "READ-SESSION-LOG";
+      break;
     case 99:
       return "QUIT";
       break;

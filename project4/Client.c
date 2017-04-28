@@ -65,6 +65,12 @@ void parseuserinput()
     sendfile(filename, textoutputbuffer, filecontents,
       sd, FILESDIRECTORY);
   }*/
+  else if(strncmp(userinputbuffer, "session log", sizeof("session log")-1) == 0)
+  {
+    sendcommandmessage(CMDID_READSESSIONLOG, FALSE, FALSE);
+    useroutputbuffer = receivetext(textinputbuffer, useroutputbuffer, sd);
+    printf("\n%s", useroutputbuffer);
+  }
   else
   {
     printf("Invalid input.  Please try again: ");
