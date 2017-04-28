@@ -32,15 +32,16 @@ char *client_name;
 //send a command
 void sendcommandmessage(unsigned int command_id, unsigned int target_id, char *target_name)
 {
-  CommandMessage commandmessage = *(CommandMessage *)safemalloc(sizeof(CommandMessage));
-  commandmessage.command_id = command_id;
-  strcpy(commandmessage.command_name, getcommand_name(commandmessage.command_id));
-  commandmessage.target_id = target_id;
+  CommandMessage *commandmessage = (CommandMessage *)safemalloc(sizeof(CommandMessage));
+  commandmessage->command_id = command_id;
+  strcpy(commandmessage->command_name, getcommand_name(commandmessage->command_id));
+  commandmessage->target_id = target_id;
   if(target_name != NULL && strlen(target_name) != 0)
-    strcpy(commandmessage.target_name, target_name);
-  commandmessage.client_id = client_id;
-  strcpy(commandmessage.client_name, client_name);
-  safewritecommand(sd, (void *)&commandmessage);
+    strcpy(commandmessage->target_name, target_name);
+  commandmessage->client_id = client_id;
+  strcpy(commandmessage->client_name, client_name);
+  safewritecommand(sd, (void *)commandmessage);
+  free(commandmessage);
 }
 
 
@@ -48,15 +49,15 @@ void sendcommandmessage(unsigned int command_id, unsigned int target_id, char *t
 unsigned int generateclient_id(char *client_name)
 {
   //message the server
-  CommandMessage message_generate_id = *(CommandMessage *)safemalloc(sizeof(CommandMessage));
-  message_generate_id.command_id = CMDID_GENERATECLIENTID;
-  strcpy(message_generate_id.command_name, getcommand_name(message_generate_id.command_id));
-  message_generate_id.target_id = FALSE;
-  strcpy(message_generate_id.target_name, "");
-  message_generate_id.client_id = FALSE;
-  strcpy(message_generate_id.client_name, client_name);
-  safewritecommand(sd, (void *)&message_generate_id);
-
+  CommandMessage *message_generate_id = (CommandMessage *)safemalloc(sizeof(CommandMessage));
+  message_generate_id->command_id = CMDID_GENERATECLIENTID;
+  strcpy(message_generate_id->command_name, getcommand_name(message_generate_id->command_id));
+  message_generate_id->target_id = FALSE;
+  strcpy(message_generate_id->target_name, "");
+  message_generate_id->client_id = FALSE;
+  strcpy(message_generate_id->client_name, client_name);
+  safewritecommand(sd, (void *)message_generate_id);
+  free(message_generate_id);
   //rn this just returns 1, in the future it could return a unique client id
   return 1;
 }

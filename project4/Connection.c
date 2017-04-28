@@ -217,5 +217,6 @@ char *safestrcpy(char **dest, char **src)
   dest2 = (char *)strcat(dest2, "\n");
   *dest = (char *)safemalloc(strlen(dest2));
   strcpy(*dest, dest2);
+  free(dest2);
   return *dest;
 }
