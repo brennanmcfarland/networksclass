@@ -2,10 +2,6 @@
 #include "Client.h"
 #include "ClientConnection.c"
 
-/*
-  TODO: ensure clients are handled serially
-  ensure the client exits gracefully if the connection is lost/times out
-*/
 
 void promptcommandlist()
 {
@@ -48,6 +44,8 @@ void parseuserinput()
     printf("\n%s", useroutputbuffer);
   }
   //TODO: put this in a separate function
+  //this is for future potential use, but it doesn't quite work right atm
+  /*
   else if(strncmp(userinputbuffer, "write ", sizeof("write ")-1) == 0)
   {
     char *filename = userinputbuffer+sizeof("write");
@@ -66,7 +64,7 @@ void parseuserinput()
     //and send it over the network
     sendfile(filename, textoutputbuffer, filecontents,
       sd, FILESDIRECTORY);
-  }
+  }*/
   else
   {
     printf("Invalid input.  Please try again: ");

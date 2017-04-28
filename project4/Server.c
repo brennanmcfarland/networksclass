@@ -1,3 +1,4 @@
+#include <time.h>
 #include "Server.h"
 #include "ServerConnection.c"
 
@@ -17,7 +18,7 @@ void receivefile(char *filename, int sd)
   filepath[strlen(filepath)-1] = '\0';
 
   safefileopen(&writingfilestream, (char *)filepath, 'w');
-  safefilewrite(writingfilestream, (char *)filepath, strlen(filepath));
+  safefilewrite(writingfilestream, (char *)filecontents, strlen(filecontents));
   safefileclose(&writingfilestream);
 }
 
@@ -69,6 +70,36 @@ void readfilelist()
   closedir(dirptr);
 }
 
+//record the current login in the log file
+void logsessionstart(char *name, unsigned int id)
+{
+  char sessionlogfilepath[strlen(LOGSDIRECTORY)+strlen(SESSIONSLOGFILE)+2];
+  sessionlogfilepath[0] = '\0';
+  strcat((char *)sessionlogfilepath, LOGSDIRECTORY);
+  strcat((char *)sessionlogfilepath, SESSIONSLOGFILE);
+  //sessionlogfilepath[strlen(sessionlogfilepath)-1] = '\0';
+
+  FILE *loginfilestream;
+  safefileopen(&loginfilestream, sessionlogfilepath, 'a');
+  char logmessage[MAXCOMMANDNAMESIZE+SESSIONLOGMAXLEN];
+  getlogsessionstartmessage(name, id, logmessage);
+  safefilewrite(loginfilestream, (char *)logmessage, strlen(logmessage));
+  safefileclose(&loginfilestream);
+}
+
+//the total log message must always be <=MAXCOMMANDNAMESIZE+SESSIONLOGMAXLEN
+void getlogsessionstartmessage(char *name, unsigned int id, char *logmessage)
+{
+  time_t currenttime;
+  time(&currenttime);
+  //printf("%s", ctime(&currenttime));
+  strcpy(logmessage, "User: ");
+  strncat(logmessage, name, strlen(name)-1);
+  strcat(logmessage, " logon ");
+  strcat(logmessage, ctime(&currenttime));
+  //strcat(logmessage, "\n");
+}
+
 void handleconnection(int sd)
 {
   /* ask for login information and wait for response*/
@@ -77,6 +108,7 @@ void handleconnection(int sd)
   if(message_generate_id.command_id != CMDID_GENERATECLIENTID)
     errexit("error generating user id", NULL);
   generateclient_id((char **)&(message_generate_id.client_name));
+  logsessionstart(message_generate_id.client_name, currentclient_id);
   printf("Server recognizes user: %s\n", message_generate_id.client_name);
 
   /* continue accepting responses until the quit command is received */

@@ -40,6 +40,7 @@ void awaitresponse(int filedes, void *readbuffer)
   }
 }
 
+//seems like it never receives it
 void awaittext(int filedes, void *readbuffer)
 {
   while(1==1)
@@ -60,15 +61,11 @@ void sendfile(char *filename, char *buffer, char *filecontents,
   strcat((char *)filepath, filename);
   filepath[strlen(filepath)-1] = '\0';
 
-  /*
-    TODO: get the below commented out code to actually work so it checks if the
-    file is there
-  */
   //check if the file exists and the user can open it
   //if(access((char *)filepath+1, F_OK) == -1)
   //{
   //  strcpy(filecontents, "Error: The file either does not exist or cannot be accessed");
-  //  sendtext(filecontents, textoutputbuffer, clientid);
+  //  sendtext(filecontents, buffer, clientid);
   //}
   //else
   //{
@@ -114,7 +111,8 @@ char *receivetext(char *texttoreceive, char *textbuffer, int source_id)
 {
   //TODO: this may overflow with too big input
   textbuffer = (char *)safemalloc(MAXFILEREADSIZE);
-  awaittext(source_id, (void *)textbuffer); //after this it can no longer access the memory in textbuffer
+  awaittext(source_id, (void *)textbuffer);
+  //ERR: HERE IT"S BLANK
   //printf("received the following:%s\n", (char *)textbuffer);
   return (char *)textbuffer;
 }
@@ -162,6 +160,7 @@ void safewritetext(int filedes, char *writebuffer)
   int temp;
   if ((temp = write (filedes, writebuffer, lentowrite)) < 0)
     errexit ("error writing message: %s", writebuffer);
+  //ERR: HERE WRITEBUFFER HAS THE FILE CONTENTS
   printf("wrote %d bytes of text\n", temp);
 }
 
@@ -226,38 +225,10 @@ void sendtext(char *texttosend, char *textbuffer, unsigned int target_id)
   //}
   //*textbuffer = (char[strlen(*texttosend)])(*texttosend);
   //safewritetext(target_id, &tempbuffer);
+  //ERR: HERE TEXTTOSEND HAS THE FILE CONTENTS
   safewritetext(target_id, texttosend);
 }
-/*
-void sendtext(char **texttosend, char **textbuffer, unsigned int target_id)
-{
-  int substrindex = 0;
-  *textbuffer = "";
-  //while there's still text left to send
-  while(substrindex < strlen(*texttosend))
-  {
-    //take a substring and send it
-    safestrcpy(textbuffer, texttosend); //TODO: truncate this so it only sends
-                                          //part at a time and leave a spot for the EOF below
-    //strncpy(*textbuffer, (*texttosend), 5);
-    //strncpy(textbuffer, (*texttosend)+substrindex, strlen(textbuffer)-2);
-    //memcpy(textbuffer, texttosend[substrindex], strlen(textbuffer)-1);
-    (*textbuffer)[strlen(*textbuffer)-1] = '\0'; //null terminator
-    safewrite(target_id, (void *)textbuffer);
-    substrindex += strlen(*textbuffer);
-  }
-  printf("text to send is:%s\n", *texttosend);
-  printf("sending:%s\n", *textbuffer);
-  safewrite(target_id, (void *)textbuffer);
-  //send EOF at the end to indicate it's done
-  memset(*textbuffer, FALSE, TEXTBUFLEN);
-  (*textbuffer)[0] = EOF;
-  printf("should send EOF:%s\n", *textbuffer);
-  printf("sending:%s\n", *textbuffer);
-  safewrite(target_id, (void *)textbuffer);
-  //may need to clear the arg buffer when done, or do that outside function
-}
-*/
+
 void *safemalloc (unsigned int sz)
 {
     void *p;

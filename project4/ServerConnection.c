@@ -39,26 +39,6 @@ unsigned int currentclient_id; //id of the current client, to be replaced if han
 //int clientmapssize = 0; //the number of client name-id mappings
 //int clientmapscapacity = IDNAMEMAPTABLECAPACITY;
 
-/*
-//returns the new client id
-unsigned int generateclient_id(char **client_name)
-{
-  //initialize the list of ids if it's not already
-  if(clientmaps == NULL)
-    clientmaps = safemalloc(sizeof(char *[clientmapscapacity]));
-  //grow the list of ids if it's full
-  else if(clientmapssize >= clientmapscapacity)
-  {
-    clientmapscapacity = clientmapscapacity*IDNAMEMAPTABLEGROWTHFACTOR;
-    //TODO: need to actually copy the mappings over to a new array
-  }
-
-  //and add the new id
-  clientmaps[clientmapssize] = *client_name;
-  return 1;
-}
-*/
-
 
 //this is only useful if there's multiple parallel connections, so for now it's pointless
 unsigned int generateclient_id(char **client_name)
