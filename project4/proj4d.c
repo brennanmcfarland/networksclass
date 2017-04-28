@@ -38,7 +38,7 @@ void receivefile(char *filename, int sd)
 //send the list of readable files
 void listfiles(unsigned int clientid)
 {
-  printf("%s", filelist);
+  printcommunication(CMDID_LISTFILES, TRUE, filelist);
   sendtext(filelist, textoutputbuffer, clientid);
 }
 
@@ -105,6 +105,7 @@ void logsessionstart(char *name, unsigned int id)
 void sendtime(unsigned int clientid)
 {
   gettime();
+  printcommunication(CMDID_GETTIME, TRUE, currenttime);
   sendtext(currenttime, textoutputbuffer, clientid);
 }
 
@@ -126,16 +127,26 @@ void gettime()
   strcpy(currenttime, ctime(&unformattedtime));
 }
 
+void printcommunication(unsigned int commandid, int isoutbound, char *senttext)
+{
+  if(isoutbound == TRUE)
+    printf("S -> C: ");
+  else
+    printf("C -> S: ");
+  printf("%s %s\n", getcommand_name(commandid), senttext);
+}
+
 void handleconnection(int sd)
 {
   /* ask for login information and wait for response*/
   awaitresponse(sd, (void *)&inputbuffer);
   CommandMessage message_generate_id = inputbuffer;
+  printcommunication(message_generate_id.command_id, FALSE,
+    message_generate_id.client_name);
   if(message_generate_id.command_id != CMDID_GENERATECLIENTID)
     errexit("error generating user id", NULL);
   generateclient_id((char **)&(message_generate_id.client_name));
   logsessionstart(message_generate_id.client_name, currentclient_id);
-  printf("Server recognizes user: %s\n", message_generate_id.client_name);
 
   /* continue accepting responses until the quit command is received */
   while(TRUE == TRUE)
@@ -143,6 +154,7 @@ void handleconnection(int sd)
     memset((void *)&inputbuffer, INTINITIALIZER, sizeof(CommandMessage));
     awaitresponse(sd, (void *)&inputbuffer);
     CommandMessage commandmessage = inputbuffer;
+    printcommunication(commandmessage.command_id, FALSE, commandmessage.target_name);
 
     if(commandmessage.command_id == CMDID_LISTFILES)
       listfiles(sd2);
@@ -150,12 +162,12 @@ void handleconnection(int sd)
       return;
     else if(commandmessage.command_id == CMDID_READFILE)
       sendfile(commandmessage.target_name, textoutputbuffer, filecontents,
-        sd2, FILESDIRECTORY);
+        sd2, FILESDIRECTORY, commandmessage.command_id);
     else if(commandmessage.command_id == CMDID_WRITEFILE)
       receivefile(commandmessage.target_name, sd2);
     else if(commandmessage.command_id == CMDID_READSESSIONLOG)
       sendfile(SESSIONSLOGFILE, textoutputbuffer, filecontents,
-        sd2, LOGSDIRECTORY);
+        sd2, LOGSDIRECTORY, commandmessage.command_id);
     else if(commandmessage.command_id == CMDID_GETTIME)
       sendtime(sd2);
   }

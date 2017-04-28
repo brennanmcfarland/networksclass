@@ -1,0 +1,45 @@
+Snippets of code from stuff I may add in the future, but couldn't quite get
+working right by the deadline:
+
+//TODO: put this in a separate function
+//this is for future potential use, but it doesn't quite work right atm
+/*
+else if(strncmp(userinputbuffer, "write ", sizeof("write ")-1) == 0)
+{
+  char *filename = userinputbuffer+sizeof("write");
+  //notify the server that it is about to receive a file
+  sendcommandmessage(CMDID_WRITEFILE, FALSE, filename);
+  //read the contents of the file into filecontents
+  FILE *sendingfilestream;
+  char filepath[strlen(filename)+strlen(FILESDIRECTORY)];
+  filepath[0] = '\0';
+  strcat((char *)filepath, FILESDIRECTORY);
+  strcat((char *)filepath, filename);
+  filepath[strlen(filepath)-1] = '\0';
+
+  safefileopen(&sendingfilestream, filepath, 'r');
+  safefileread(sendingfilestream, filecontents, MAXFILEREADSIZE);
+  //and send it over the network
+  sendfile(filename, textoutputbuffer, filecontents,
+    sd, FILESDIRECTORY);
+}*/
+
+
+things to test for:
+  X reading empty file
+  --  reading overly large file
+    all buffer overflows, including
+    X  user input
+    X  user output
+    X  text input
+    X  text output
+    X  command field input
+    X all possible combinations of commands, multiple times on different files
+    X multiple connections (serially)
+  X headers
+  check everything on the sheet
+  X change executable names
+  TEST ON THE SERVER
+  X replace constants
+  go over style one more time
+  don't forget the report!

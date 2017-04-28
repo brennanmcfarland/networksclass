@@ -1,3 +1,14 @@
+/*
+  Brennan McFarland
+  bfm21
+  ClientConnection.c
+  4/28/17
+  handles the connection/core functionality of the client side
+    -creates and sends messages specified by Client.c
+    -generates a client id
+    -reads input
+    -initializes the connection
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,7 +47,7 @@ void sendcommandmessage(unsigned int command_id, unsigned int target_id, char *t
   commandmessage->command_id = command_id;
   strcpy(commandmessage->command_name, getcommand_name(commandmessage->command_id));
   commandmessage->target_id = target_id;
-  if(target_name != NULL && strlen(target_name) != 0)
+  if(target_name != NULL && strlen(target_name) != EMPTYSTRING)
     strcpy(commandmessage->target_name, target_name);
   commandmessage->client_id = client_id;
   strcpy(commandmessage->client_name, client_name);
@@ -58,26 +69,25 @@ unsigned int generateclient_id(char *client_name)
   strcpy(message_generate_id->client_name, client_name);
   safewritecommand(sd, (void *)message_generate_id);
   free(message_generate_id);
-  //rn this just returns 1, in the future it could return a unique client id
-  return 1;
+  //rn this just returns true, in the future it could return a unique client id
+  return TRUE;
 }
 
-//returns TRUE on error
 int safescanf(char *buffer)
 {
   int scanbuffersize = SCANBUFFERINITSIZE;
   fgets(buffer, scanbuffersize, stdin);
 
   //check for overly large input
-  if(strlen(buffer) >= SCANBUFFERINITSIZE-1)
+  if(strlen(buffer) >= SCANBUFFERINITSIZE-OFFSETVALUE)
   {
     printf("Input size out of range.  Please try again:\n");
     char c;
     while ((c = getchar()) != '\n');
     safescanf(buffer);
-    return TRUE;
+    return EXIT_ERRORCODE;
   }
-  return FALSE;
+  return EXIT_NOERROR;
 }
 
 int usage (char *progname)
@@ -97,7 +107,7 @@ int errexit (char *format, char *arg)
 void init(int argc, char *argv [])
 {
   if (argc != CLIENT_REQUIRED_ARGC)
-      usage (argv [0]);
+      usage (argv [INTINITIALIZER]);
 
   textoutputbuffer = (char *)safemalloc(sizeof(char[BUFLEN]));
   textoutputbuffer = "";
@@ -108,7 +118,7 @@ void init(int argc, char *argv [])
       errexit ("cannot find name: %s", argv [CLIENT_HOST_POS]);
 
   /* set endpoint information */
-  memset ((char *)&sockin, 0x0, sizeof (sockin));
+  memset ((char *)&sockin, INTINITIALIZER, sizeof (sockin));
   sockin.sin_family = AF_INET;
   sockin.sin_port = htons (atoi (argv [CLIENT_PORT_POS]));
   memcpy ((char *)&sockin.sin_addr,hinfo->h_addr,hinfo->h_length);
@@ -118,10 +128,10 @@ void init(int argc, char *argv [])
 
   /* allocate a socket */
   sd = socket(PF_INET, SOCK_STREAM, protoinfo->p_proto);
-  if (sd < 0)
+  if (sd < EXIT_NOERROR)
       errexit("cannot create socket",NULL);
 
   /* connect the socket */
-  if (connect (sd, (struct sockaddr *)&sockin, sizeof(sockin)) < 0)
+  if (connect (sd, (struct sockaddr *)&sockin, sizeof(sockin)) < EXIT_NOERROR)
       errexit ("cannot connect", NULL);
 }

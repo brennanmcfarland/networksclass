@@ -1,7 +1,7 @@
 
 CFLAGS=-g -Wall -Werror
 
-TARGETS=Client Server
+TARGETS=proj4 proj4d
 
 all: $(TARGETS)
 

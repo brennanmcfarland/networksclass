@@ -1,7 +1,7 @@
 /*
   Brennan McFarland
   bfm21
-  Client.c
+  proj5.c
   4/28/17
   handles the upper level of how the user interacts with the client side
     -accepts input from and displays output to the user, calls commands handled

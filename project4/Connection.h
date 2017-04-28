@@ -1,3 +1,15 @@
+/*
+  Brennan McFarland
+  bfm21
+  Connection.h
+  4/28/17
+  the header for Connection.c
+  handles how data is read and written from files and sent across the network
+  for client and server
+    -sends/receives text/commands
+    -performs file operations
+    -memory allocation
+*/
 
 #define PROTOCOL "tcp"
 #define BYTESIZE 1
@@ -9,8 +21,10 @@
 #define IDNAMEMAPTABLECAPACITY 16
 #define IDNAMEMAPTABLEGROWTHFACTOR 2
 #define MAXCOMMANDNAMESIZE 32
-#define MAXFILEREADSIZE 4096
+#define MAXFILEREADSIZE 32768
+#define EMPTYSTRING 0
 
+#define CMDID_TEST 1
 #define CMDID_GENERATECLIENTID 32
 #define CMDID_LISTFILES 34
 #define CMDID_READFILE 36
@@ -24,7 +38,7 @@ char *getcommand_name(unsigned int command_id);
 void awaitresponse(int filedes, void *readbuffer);
 void awaittext(int filedes, void *readbuffer);
 void sendfile(char *filename, char *buffer, char *filecontents,
-  unsigned int clientid, char *directory);
+  unsigned int clientid, char *directory, unsigned int callingcommand);
 int saferead(int filedes, void *readbuffer);
 int safereadtext(int filedes, void *readbuffer);
 int safereadcommand(int filedes, void *readbuffer);

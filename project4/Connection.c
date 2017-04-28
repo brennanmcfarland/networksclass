@@ -1,5 +1,17 @@
+/*
+  Brennan McFarland
+  bfm21
+  Connection.c
+  4/28/17
+  handles how data is read and written from files and sent across the network
+  for client and server
+    -sends/receives text/commands
+    -performs file operations
+    -memory allocation
+*/
 
 #include "Connection.h"
+#include "McFarlandNetworks.h"
 
 char *filelist; //string holding the list of readable files
 char filecontents[MAXFILEREADSIZE]; //string holding the contents of a file
@@ -10,28 +22,28 @@ char *getcommand_name(unsigned int command_id)
   //all commands must be < MAXCOMMANDNAMESIZE
   switch(command_id)
   {
-    case 1:
+    case CMDID_TEST:
       return "TEST";
       break;
-    case 32:
+    case CMDID_GENERATECLIENTID:
       return "GENERATE-CLIENT-ID";
       break;
-    case 34:
+    case CMDID_LISTFILES:
       return "LIST-FILES";
       break;
-    case 36:
+    case CMDID_READFILE:
       return "READ-FILE";
       break;
-    case 38:
+    case CMDID_WRITEFILE:
       return "WRITE-FILE";
       break;
-    case 40:
+    case CMDID_READSESSIONLOG:
       return "READ-SESSION-LOG";
       break;
-    case 42:
+    case CMDID_GETTIME:
       return "GET-TIME";
       break;
-    case 99:
+    case CMDID_QUIT:
       return "QUIT";
       break;
     default:
@@ -42,9 +54,9 @@ char *getcommand_name(unsigned int command_id)
 //wait for the other end to respond with a message
 void awaitresponse(int filedes, void *readbuffer)
 {
-  while(1 == 1)
+  while(TRUE == TRUE)
   {
-    if(saferead(filedes, readbuffer) != 0)
+    if(saferead(filedes, readbuffer) != EMPTYSTRING)
       return;
   }
 }
@@ -52,59 +64,61 @@ void awaitresponse(int filedes, void *readbuffer)
 //await for the other end to respond with text
 void awaittext(int filedes, void *readbuffer)
 {
-  while(1==1)
+  while(TRUE==TRUE)
   {
-    if(safereadtext(filedes, readbuffer) != 0)
+    if(safereadtext(filedes, readbuffer) != EMPTYSTRING)
       return;
   }
 }
 
 //send the contents of one file
 void sendfile(char *filename, char *buffer, char *filecontents,
-  unsigned int clientid, char *directory)
+  unsigned int clientid, char *directory, unsigned int callingcommand)
 {
   FILE *sendingfilestream;
   //get file path
   char filepath[strlen(filename)+strlen(directory)];
-  filepath[0] = '\0';
+  filepath[INTINITIALIZER] = '\0';
   strcat((char *)filepath, directory);
   strcat((char *)filepath, filename);
-  filepath[strlen(filepath)-1] = '\0';
+  filepath[strlen(filepath)-OFFSETVALUE] = '\0';
 
   //read from the file and send it across the network
   safefileopen(&sendingfilestream, (char *)filepath, 'r');
   safefileread(sendingfilestream, (void *)filecontents, MAXFILEREADSIZE);
-  if(strcmp(filecontents, "") == 0) //send stub if empty, waits forever otherwise
+  if(strcmp(filecontents, "") == EMPTYSTRING) //waits forever otherwise
     strcpy(filecontents, "[empty file]\n");
+  printf("S -> C: "); //only the server sends raw unstructured text in a stream
+  printf("%s %s\n", getcommand_name(callingcommand), filecontents);
   sendtext(filecontents, buffer, clientid);
   safefileclose(&sendingfilestream);
-  memset(filecontents, FALSE, strlen(filecontents));
-  memset(buffer, FALSE, strlen(buffer));
+  memset(filecontents, INTINITIALIZER, strlen(filecontents));
+  memset(buffer, INTINITIALIZER, strlen(buffer));
 }
 
 int saferead(int filedes, void *readbuffer)
 {
-  memset (readbuffer,FALSE,BUFLEN);
-  int readresult = read (filedes, readbuffer, BUFLEN - 1);
-  if (readresult < 0)
+  memset (readbuffer,INTINITIALIZER,BUFLEN);
+  int readresult = read (filedes, readbuffer, BUFLEN - OFFSETVALUE);
+  if (readresult < EXIT_NOERROR)
     errexit ("reading error",NULL);
   return readresult;
 }
 
 int safereadtext(int filedes, void *readbuffer)
 {
-  memset(readbuffer,FALSE,MAXFILEREADSIZE);
+  memset(readbuffer,INTINITIALIZER,MAXFILEREADSIZE);
   int readresult = read (filedes, readbuffer, MAXFILEREADSIZE);
-  if (readresult < 0)
+  if (readresult < EXIT_NOERROR)
     errexit ("error reading message: %s", readbuffer);
   return readresult;
 }
 
 int safereadcommand(int filedes, void *readbuffer)
 {
-  memset (readbuffer,FALSE,sizeof(CommandMessage));
+  memset (readbuffer,INTINITIALIZER,sizeof(CommandMessage));
   int readresult = read (filedes, readbuffer, sizeof(CommandMessage));
-  if (readresult < 0)
+  if (readresult < EXIT_NOERROR)
     errexit ("reading error",NULL);
   return readresult;
 }
@@ -119,7 +133,8 @@ char *receivetext(char *texttoreceive, char *textbuffer, int source_id)
 void safewrite(int filedes, void *writebuffer)
 {
   int writeresult;
-  if ((writeresult = write (filedes, writebuffer, sizeof( *writebuffer))) < 0)
+  if ((writeresult = write (filedes, writebuffer, sizeof( *writebuffer)))
+    < EXIT_NOERROR)
     errexit ("error writing message: %s", writebuffer);
 }
 
@@ -127,20 +142,21 @@ void safewritetext(int filedes, char *writebuffer)
 {
   int lentowrite = strlen(writebuffer);
   int writeresult;
-  if ((writeresult = write (filedes, writebuffer, lentowrite)) < 0)
-    errexit ("error writing message: %s", writebuffer);
+  if ((writeresult = write (filedes, writebuffer, lentowrite)) < EXIT_NOERROR)
+    errexit ("Error writing message: %s", writebuffer);
 }
 
 void safewritecommand(int filedes, void *writebuffer)
 {
-  if (write (filedes, writebuffer, sizeof(CommandMessage)) < 0)
-    errexit ("error writing message: %s", writebuffer);
+  if (write (filedes, writebuffer, sizeof(CommandMessage)) < EXIT_NOERROR)
+    errexit ("Error writing message: %s", writebuffer);
 }
 
 int safefileread(FILE *filestream, void *readbuffer, int readbuffersize)
 {
+  memset(readbuffer, INTINITIALIZER, readbuffersize);
   int readresult = fread(readbuffer,BYTESIZE,readbuffersize,filestream);
-  if(readresult == FALSE && ferror(filestream) != FALSE)
+  if(readresult == EMPTYSTRING && ferror(filestream) != EXIT_NOERROR)
   {
     printf("Error reading from file.\n");
     exit(EXIT_ERRORCODE);
@@ -150,8 +166,8 @@ int safefileread(FILE *filestream, void *readbuffer, int readbuffersize)
 
 int safefilewrite(FILE *filestream, void *writebuffer, int writebuffersize)
 {
-  int writeresult = fwrite(writebuffer, 1, writebuffersize, filestream);
-  if(writeresult == FALSE && ferror(filestream) != FALSE)
+  int writeresult = fwrite(writebuffer, BYTESIZE, writebuffersize, filestream);
+  if(writeresult == EMPTYSTRING && ferror(filestream) != EXIT_NOERROR)
   {
     printf("Error writing to file.\n");
     exit(EXIT_ERRORCODE);
@@ -171,7 +187,7 @@ void safefileopen(FILE **filestream, char *filename, char filemode)
 
 void safefileclose(FILE **filestream)
 {
-  if(fclose(*filestream) != 0)
+  if(fclose(*filestream) != EXIT_NOERROR)
   {
     printf("Error: Unable to close file.\n");
     exit(EXIT_ERRORCODE);
@@ -191,7 +207,7 @@ void *safemalloc (unsigned int sz)
         printf ("memory allocation failed, exiting ...\n");
         exit (EXIT_ERRORCODE);
     }
-    memset (p,FALSE,sz);
+    memset (p,INTINITIALIZER,sz);
     return (p);
 }
 
@@ -209,14 +225,14 @@ void *saferealloc (void *buffer, unsigned int sz)
 char *safestrcpy(char **dest, char **src)
 {
   int destsize = strlen(*dest);
-  char *dest2 = (char *)safemalloc(destsize+strlen(*src)+1);
-  if(strlen(*dest) == 0)
-    strcpy(dest2, *src);
+  char *destb = (char *)safemalloc(destsize+strlen(*src)+OFFSETVALUE);
+  if(strlen(*dest) == EMPTYSTRING)
+    strcpy(destb, *src);
   else
-    dest2 = (char *)strcat(*dest, *src);
-  dest2 = (char *)strcat(dest2, "\n");
-  *dest = (char *)safemalloc(strlen(dest2));
-  strcpy(*dest, dest2);
-  free(dest2);
+    destb = (char *)strcat(*dest, *src);
+  destb = (char *)strcat(destb, "\n");
+  *dest = (char *)safemalloc(strlen(destb));
+  strcpy(*dest, destb);
+  free(destb);
   return *dest;
 }

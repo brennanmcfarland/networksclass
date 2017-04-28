@@ -1,3 +1,14 @@
+/*
+  Brennan McFarland
+  bfm21
+  Client.h
+  4/28/17
+  header for proj5.c
+  handles the upper level of how the user interacts with the client side
+    -accepts input from and displays output to the user, calls commands handled
+      in ClientConnection.c
+*/
+
 #define FILESDIRECTORY "clientfiles/"
 #define INPUT_QUIT "quit"
 

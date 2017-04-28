@@ -1,3 +1,14 @@
+/*
+  Brennan McFarland
+  bfm21
+  ServerConnection.h
+  4/28/17
+  the header for ServerConnection.c
+  handles the connection aspect of the server side
+    -generates a client ids for storage on the server (pending)
+    -holds buffers for read/write operations
+    -initializes the connection
+*/
 
 #define SERVER_REQUIRED_ARGC 2
 #define SERVER_PORT_POS 1
