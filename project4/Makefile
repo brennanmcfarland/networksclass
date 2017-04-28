@@ -8,5 +8,6 @@ all: $(TARGETS)
 clean:
 	rm -f $(TARGETS)
 	rm -rf *.dSYM
+	rm -f *.o
 
 distclean: clean
