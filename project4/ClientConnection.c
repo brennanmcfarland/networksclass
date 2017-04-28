@@ -20,12 +20,8 @@ struct protoent *protoinfo;
 CommandMessage inputbuffer; //input from the server
 CommandMessage outputbuffer; //output to the server
 
-//char *textoutputbufferstr = "";
 char *textoutputbuffer = ""; //pure text output to the server
-//char textinputbuffer[TEXTBUFLEN]; //pure text input from the server
-//char *textinputbufferstr = "";
-char *textinputbuffer = "";
-//char *userinputbufferstr = "";
+char *textinputbuffer = ""; //pure text input from the server
 char userinputbuffer[SCANBUFFERINITSIZE]; //input from the user
 char *useroutputbuffer = ""; //output to display from the user
 
@@ -61,7 +57,7 @@ unsigned int generateclient_id(char *client_name)
   strcpy(message_generate_id.client_name, client_name);
   safewritecommand(sd, (void *)&message_generate_id);
 
-  //and wait for the id as a response
+  //rn this just returns 1, in the future it could return a unique client id
   return 1;
 }
 
@@ -80,7 +76,6 @@ int safescanf(char *buffer)
     safescanf(buffer);
     return TRUE;
   }
-  //printf("USER INPUT BUFFER CONTAINS: %s\n\n", buffer);
   return FALSE;
 }
 
@@ -103,7 +98,6 @@ void init(int argc, char *argv [])
   if (argc != CLIENT_REQUIRED_ARGC)
       usage (argv [0]);
 
-  //textinputbuffer = (char **)safemalloc(sizeof(char[BUFLEN]));
   textoutputbuffer = (char *)safemalloc(sizeof(char[BUFLEN]));
   textoutputbuffer = "";
 
@@ -122,7 +116,6 @@ void init(int argc, char *argv [])
       errexit ("cannot find protocol information for %s", PROTOCOL);
 
   /* allocate a socket */
-  /*   would be SOCK_DGRAM for UDP */
   sd = socket(PF_INET, SOCK_STREAM, protoinfo->p_proto);
   if (sd < 0)
       errexit("cannot create socket",NULL);

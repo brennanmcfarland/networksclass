@@ -28,6 +28,9 @@ char *getcommand_name(unsigned int command_id)
     case 40:
       return "READ-SESSION-LOG";
       break;
+    case 42:
+      return "GET-TIME";
+      break;
     case 99:
       return "QUIT";
       break;
@@ -46,7 +49,7 @@ void awaitresponse(int filedes, void *readbuffer)
   }
 }
 
-//seems like it never receives it
+//await for the other end to respond with text
 void awaittext(int filedes, void *readbuffer)
 {
   while(1==1)
@@ -61,25 +64,20 @@ void sendfile(char *filename, char *buffer, char *filecontents,
   unsigned int clientid, char *directory)
 {
   FILE *sendingfilestream;
+  //get file path
   char filepath[strlen(filename)+strlen(directory)];
   filepath[0] = '\0';
   strcat((char *)filepath, directory);
   strcat((char *)filepath, filename);
   filepath[strlen(filepath)-1] = '\0';
 
-  //check if the file exists and the user can open it
-  //if(access((char *)filepath+1, F_OK) == -1)
-  //{
-  //  strcpy(filecontents, "Error: The file either does not exist or cannot be accessed");
-  //  sendtext(filecontents, buffer, clientid);
-  //}
-  //else
-  //{
-    safefileopen(&sendingfilestream, (char *)filepath, 'r');
-    safefileread(sendingfilestream, (void *)filecontents, MAXFILEREADSIZE);
-    sendtext(filecontents, buffer, clientid);
-    safefileclose(&sendingfilestream);
-  //}
+  //read from the file and send it across the network
+  safefileopen(&sendingfilestream, (char *)filepath, 'r');
+  safefileread(sendingfilestream, (void *)filecontents, MAXFILEREADSIZE);
+  if(strcmp(filecontents, "") == 0) //send stub if empty, waits forever otherwise
+    strcpy(filecontents, "[empty file]\n");
+  sendtext(filecontents, buffer, clientid);
+  safefileclose(&sendingfilestream);
   memset(filecontents, FALSE, strlen(filecontents));
   memset(buffer, FALSE, strlen(buffer));
 }
@@ -88,7 +86,6 @@ int saferead(int filedes, void *readbuffer)
 {
   memset (readbuffer,FALSE,BUFLEN);
   int readresult = read (filedes, readbuffer, BUFLEN - 1);
-  //printf("read %d bytes\n", readresult);
   if (readresult < 0)
     errexit ("reading error",NULL);
   return readresult;
@@ -97,11 +94,10 @@ int saferead(int filedes, void *readbuffer)
 int safereadtext(int filedes, void *readbuffer)
 {
   memset(readbuffer,FALSE,MAXFILEREADSIZE);
-  int temp = read (filedes, readbuffer, MAXFILEREADSIZE);
-  if (temp < 0)
+  int readresult = read (filedes, readbuffer, MAXFILEREADSIZE);
+  if (readresult < 0)
     errexit ("error reading message: %s", readbuffer);
-  printf("read %d bytes of text\n", temp);
-  return temp;
+  return readresult;
 }
 
 int safereadcommand(int filedes, void *readbuffer)
@@ -115,59 +111,24 @@ int safereadcommand(int filedes, void *readbuffer)
 
 char *receivetext(char *texttoreceive, char *textbuffer, int source_id)
 {
-  //TODO: this may overflow with too big input
   textbuffer = (char *)safemalloc(MAXFILEREADSIZE);
   awaittext(source_id, (void *)textbuffer);
-  //ERR: HERE IT"S BLANK
-  //printf("received the following:%s\n", (char *)textbuffer);
   return (char *)textbuffer;
 }
 
-/*
-//receive text from the network, receives chunk by chunk into textbuffer until end
-void receivetext(char **texttoreceive, char **textbuffer, int source_id)
-{
-  //wait for more text and read it in until we get an eof
-  do
-  {
-    int tempblock[BUFLEN];
-    awaitresponse(source_id, (void *)&tempblock);
-    *textbuffer = (char *)tempblock;
-    printf("buffer contains the following:%s\n", *textbuffer);
-
-    //int textbuffersize = strlen(*textbuffer);
-    //char *textbuffer2 = (char *)safemalloc(textbuffersize+strlen(*texttoreceive)+1);
-    //if(strlen(*textbuffer) == 0)
-    //  strcpy(textbuffer2, *texttoreceive);
-    //else
-    //  textbuffer2 = (char *)strcat(*textbuffer, *texttoreceive);
-    //textbuffer2 = (char *)strcat(textbuffer2, "\n");
-    // *textbuffer = (char *)safemalloc(strlen(textbuffer2));
-    //strcpy(*textbuffer, textbuffer2);
-
-    //strcpy(&textbuffer, &texttoreceive);
-    safestrcpy(texttoreceive, textbuffer);
-    printf("received the following:%s\n", *texttoreceive);
-  }while((*textbuffer)[strlen(*textbuffer)-1] != EOF);
-}
-*/
-
 void safewrite(int filedes, void *writebuffer)
 {
-  int temp;
-  if ((temp = write (filedes, writebuffer, sizeof( *writebuffer))) < 0)
+  int writeresult;
+  if ((writeresult = write (filedes, writebuffer, sizeof( *writebuffer))) < 0)
     errexit ("error writing message: %s", writebuffer);
-  //printf("wrote %d bytes\n", temp);
 }
 
 void safewritetext(int filedes, char *writebuffer)
 {
   int lentowrite = strlen(writebuffer);
-  int temp;
-  if ((temp = write (filedes, writebuffer, lentowrite)) < 0)
+  int writeresult;
+  if ((writeresult = write (filedes, writebuffer, lentowrite)) < 0)
     errexit ("error writing message: %s", writebuffer);
-  //ERR: HERE WRITEBUFFER HAS THE FILE CONTENTS
-  printf("wrote %d bytes of text\n", temp);
 }
 
 void safewritecommand(int filedes, void *writebuffer)
@@ -219,19 +180,6 @@ void safefileclose(FILE **filestream)
 
 void sendtext(char *texttosend, char *textbuffer, unsigned int target_id)
 {
-  //textbuffer = (char **)safemalloc(strlen(*texttosend));
-
-  char tempbuffer[(int)strlen(texttosend)];
-  //tempbuffer = *(char **)safemalloc(sizeof(char[strlen(*texttosend)]));
-  strncpy(tempbuffer, texttosend, (int)strlen(texttosend));
-  //int i;
-  //for(i=0; i<26; i++)
-  //{
-  //  tempbuffer[i] = *texttosend[i];
-  //}
-  //*textbuffer = (char[strlen(*texttosend)])(*texttosend);
-  //safewritetext(target_id, &tempbuffer);
-  //ERR: HERE TEXTTOSEND HAS THE FILE CONTENTS
   safewritetext(target_id, texttosend);
 }
 
@@ -255,7 +203,6 @@ void *saferealloc (void *buffer, unsigned int sz)
         printf ("memory allocation failed, exiting ...\n");
         exit (EXIT_ERRORCODE);
     }
-    //memset (p,FALSE,sz);
     return (p);
 }
 

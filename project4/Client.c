@@ -12,14 +12,14 @@ void promptuser(char *inputmessage)
 {
   printf("%s\n", inputmessage);
   safescanf(userinputbuffer);
-  /*
-  if(strlen(userinputbuffer) >= SCANBUFFERINITSIZE-1)
-  {
-    printf("Input size out of range.  You crashed it, genius");
-    char c;
-    while ((c = getchar()) != '\n' && c != EOF);
-  }
-  printf("USER INPUT BUFFER CONTAINS: %s\n\n", userinputbuffer);*/
+}
+
+void sendreceiveprintif(unsigned int commandid, unsigned int targetid,
+  char *targetname)
+{
+  sendcommandmessage(commandid, targetid, targetname);
+  useroutputbuffer = receivetext(textinputbuffer, useroutputbuffer, sd);
+  printf("\n%s", useroutputbuffer);
 }
 
 void parseuserinput()
@@ -32,49 +32,16 @@ void parseuserinput()
     exit(0);
   }
   else if(strncmp(userinputbuffer, "list files", sizeof("list files")-1) == 0)
-  {
-    sendcommandmessage(CMDID_LISTFILES, FALSE, FALSE);
-    useroutputbuffer = receivetext(textinputbuffer, useroutputbuffer, sd);
-    printf("\n%s", useroutputbuffer);
-  }
+    sendreceiveprintif(CMDID_LISTFILES, FALSE, FALSE);
   else if(strncmp(userinputbuffer, "read ", sizeof("read ")-1) == 0)
-  {
-    sendcommandmessage(CMDID_READFILE, FALSE, userinputbuffer+sizeof("read"));
-    useroutputbuffer = receivetext(textinputbuffer, useroutputbuffer, sd);
-    printf("\n%s", useroutputbuffer);
-  }
-  //TODO: put this in a separate function
-  //this is for future potential use, but it doesn't quite work right atm
-  /*
-  else if(strncmp(userinputbuffer, "write ", sizeof("write ")-1) == 0)
-  {
-    char *filename = userinputbuffer+sizeof("write");
-    //notify the server that it is about to receive a file
-    sendcommandmessage(CMDID_WRITEFILE, FALSE, filename);
-    //read the contents of the file into filecontents
-    FILE *sendingfilestream;
-    char filepath[strlen(filename)+strlen(FILESDIRECTORY)];
-    filepath[0] = '\0';
-    strcat((char *)filepath, FILESDIRECTORY);
-    strcat((char *)filepath, filename);
-    filepath[strlen(filepath)-1] = '\0';
-
-    safefileopen(&sendingfilestream, filepath, 'r');
-    safefileread(sendingfilestream, filecontents, MAXFILEREADSIZE);
-    //and send it over the network
-    sendfile(filename, textoutputbuffer, filecontents,
-      sd, FILESDIRECTORY);
-  }*/
+    sendreceiveprintif(CMDID_READFILE, FALSE, userinputbuffer+sizeof("read"));
   else if(strncmp(userinputbuffer, "session log", sizeof("session log")-1) == 0)
-  {
-    sendcommandmessage(CMDID_READSESSIONLOG, FALSE, FALSE);
-    useroutputbuffer = receivetext(textinputbuffer, useroutputbuffer, sd);
-    printf("\n%s", useroutputbuffer);
-  }
+    sendreceiveprintif(CMDID_READSESSIONLOG, FALSE, FALSE);
+  else if(strncmp(userinputbuffer, "time", sizeof("time")-1) == 0)
+    sendreceiveprintif(CMDID_GETTIME, FALSE, FALSE);
   else
   {
     printf("Invalid input.  Please try again: ");
-    //*userinputbuffer = "";
     promptcommandlist();
     parseuserinput();
   }
@@ -100,7 +67,7 @@ int main (int argc, char *argv [])
     parseuserinput();
   }
 
-  /* close & exit */
+  /* close & exit -- this should never be reached in the code's current state*/
   close (sd);
   exit (0);
 }

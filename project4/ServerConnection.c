@@ -14,10 +14,6 @@
 #include "McFarlandNetworks.h"
 #include "ConnectionHashtable.c"
 
-/*
-  TODO: terminate a connection
-
-*/
 
 struct sockaddr_in sockin;
 struct sockaddr addr;
@@ -30,17 +26,10 @@ CommandMessage outputbuffer; //output to a client
 char *textoutputbuffer; //pure text output to a client
 char *textinputbuffer; //pure text input from a client
 
-unsigned int currentclient_id; //id of the current client, to be replaced if handled in parallel
+unsigned int currentclient_id; //id of the current client
 
 
-/* could turn this into a hashtable in the future, but for a small number of
- connections a simple array will do*/
-//char **clientmaps; //mappings from client name to client id
-//int clientmapssize = 0; //the number of client name-id mappings
-//int clientmapscapacity = IDNAMEMAPTABLECAPACITY;
-
-
-//this is only useful if there's multiple parallel connections, so for now it's pointless
+//only useful if there's multiple parallel connections; for now it's pointless
 unsigned int generateclient_id(char **client_name)
 {
   currentclient_id = 1;
@@ -63,7 +52,6 @@ int errexit (char *format, char *arg)
 //initialize the client-server connection
 void init(int argc, char *argv [])
 {
-
   textinputbuffer = (char *)safemalloc(sizeof(char[BUFLEN]));
   textinputbuffer = "";
   textoutputbuffer = (char *)safemalloc(sizeof(char[BUFLEN]));
@@ -83,7 +71,6 @@ void init(int argc, char *argv [])
   sockin.sin_port = htons ((u_short) atoi (argv [SERVER_PORT_POS]));
 
   /* allocate a socket */
-  /*   would be SOCK_DGRAM for UDP */
   sd = socket(PF_INET, SOCK_STREAM, protoinfo->p_proto);
   if (sd < 0)
       errexit("cannot create socket", NULL);

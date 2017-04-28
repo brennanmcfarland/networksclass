@@ -22,8 +22,12 @@
 #define STRING_COMMANDLIST "\nList of things you can do:\n"\
   "quit - terminate the connection\n"\
   "list files - display the list of readable files\n"\
-  "read [filename] - read the contents of a file"
+  "read [filename] - read the contents of a file\n"\
+  "session log - view previous login sessions\n"\
+  "time - retrieve the server system time\n"\
 
 void promptcommandlist();
 void promptuser(char *inputmessage);
+void sendreceiveprintif(unsigned int commandid, unsigned int targetid,
+  char *targetname);
 void parseuserinput();

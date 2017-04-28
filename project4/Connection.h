@@ -11,13 +11,14 @@
 #define MAXCOMMANDNAMESIZE 32
 #define MAXFILEREADSIZE 4096
 
-
 #define CMDID_GENERATECLIENTID 32
 #define CMDID_LISTFILES 34
 #define CMDID_READFILE 36
 #define CMDID_WRITEFILE 38
 #define CMDID_READSESSIONLOG 40
+#define CMDID_GETTIME 42
 #define CMDID_QUIT 99
+
 
 char *getcommand_name(unsigned int command_id);
 void awaitresponse(int filedes, void *readbuffer);
@@ -41,6 +42,7 @@ void *saferealloc (void *buffer, unsigned int sz);
 char *safestrcpy(char **dest, char **src);
 
 
+//most of these fields are useless now, but could be expanded upon later
 typedef struct CommandMessage
 {
   //what command to execute
@@ -54,9 +56,5 @@ typedef struct CommandMessage
   //the client sending the command
   unsigned int client_id;
   char client_name[MAXCOMMANDNAMESIZE];
-
-  //if the message includes text, eg a post, it goes here
-  //may just replace this with another struct that will follow certain commands
-  //char *message_text;
 
 } CommandMessage;

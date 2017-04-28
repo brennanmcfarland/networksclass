@@ -2,6 +2,7 @@
 #include "Server.h"
 #include "ServerConnection.c"
 
+char currenttime[TIMESTRINGLENGTH];
 
 void receivefile(char *filename, int sd)
 {
@@ -27,7 +28,6 @@ void listfiles(unsigned int clientid)
 {
   printf("%s", filelist);
   sendtext(filelist, textoutputbuffer, clientid);
-  //safewrite(clientid, (void *)&filelist);
 }
 
 //read the list of files from file
@@ -55,7 +55,7 @@ void readfilelist()
     }
     else
     {
-      int filelistsize = strlen(filelist);
+      int filelistsize = strlen(filelist); //concat file entries back + forth
       char *filelist2 = (char *)safemalloc(filelistsize+strlen(direntry->d_name)+1);
       if(strlen(filelist) == 0)
         strcpy(filelist2, direntry->d_name);
@@ -73,11 +73,11 @@ void readfilelist()
 //record the current login in the log file
 void logsessionstart(char *name, unsigned int id)
 {
+  printf("logging session start...%s\n", name);
   char sessionlogfilepath[strlen(LOGSDIRECTORY)+strlen(SESSIONSLOGFILE)+2];
   sessionlogfilepath[0] = '\0';
   strcat((char *)sessionlogfilepath, LOGSDIRECTORY);
-  strcat((char *)sessionlogfilepath, SESSIONSLOGFILE);
-  //sessionlogfilepath[strlen(sessionlogfilepath)-1] = '\0';
+  strncat((char *)sessionlogfilepath, SESSIONSLOGFILE, strlen(SESSIONSLOGFILE)-1);
 
   FILE *loginfilestream;
   safefileopen(&loginfilestream, sessionlogfilepath, 'a');
@@ -87,17 +87,28 @@ void logsessionstart(char *name, unsigned int id)
   safefileclose(&loginfilestream);
 }
 
+void sendtime(unsigned int clientid)
+{
+  gettime();
+  sendtext(currenttime, textoutputbuffer, clientid);
+}
+
 //the total log message must always be <=MAXCOMMANDNAMESIZE+SESSIONLOGMAXLEN
 void getlogsessionstartmessage(char *name, unsigned int id, char *logmessage)
 {
-  time_t currenttime;
-  time(&currenttime);
-  //printf("%s", ctime(&currenttime));
   strcpy(logmessage, "User: ");
   strncat(logmessage, name, strlen(name)-1);
   strcat(logmessage, " logon ");
-  strcat(logmessage, ctime(&currenttime));
-  //strcat(logmessage, "\n");
+  gettime();
+  strcat(logmessage, currenttime);
+}
+
+//read the current time into currenttime
+void gettime()
+{
+  time_t unformattedtime;
+  time(&unformattedtime);
+  strcpy(currenttime, ctime(&unformattedtime));
 }
 
 void handleconnection(int sd)
@@ -130,6 +141,8 @@ void handleconnection(int sd)
     else if(commandmessage.command_id == CMDID_READSESSIONLOG)
       sendfile(SESSIONSLOGFILE, textoutputbuffer, filecontents,
         sd2, LOGSDIRECTORY);
+    else if(commandmessage.command_id == CMDID_GETTIME)
+      sendtime(sd2);
   }
 }
 
