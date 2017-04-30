@@ -47,4 +47,4 @@ void insertSourceIP(u_int32_t newentryvalue);
 void insertDestIP(u_int32_t newentryvalue);
 u_int32_t hashCode(u_int32_t counttohash);
 void initializeTables();
-void *hashTableSafeMalloc (unsigned int sz);
+void *safeMalloc (unsigned int sz);

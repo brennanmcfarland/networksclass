@@ -13,6 +13,7 @@
 #include </usr/include/netinet/udp.h> //for the udphdr struct
 #include </usr/include/netinet/tcp.h> //for the tcphdr struct
 #include "ConnectionHashtable.h"
+#include "IPHashtable.c"
 #include "McFarlandNetworks.h"
 
 
@@ -93,7 +94,7 @@ void initializeConnectionHashtableList(char **originatoripaddress,
     %(unsigned int)connectionhashtablecapacity;
   //printf("creating new list with key %u\n", connectionlistfirstkey);
   ConnectionHashtableListNode **headbuffer =
-    (ConnectionHashtableListNode **)ConnectionHashtableSafeMalloc(POINTERSIZE);
+    (ConnectionHashtableListNode **)safeMalloc(POINTERSIZE);
   headbuffer = &(connectionhashtable.tableentrylists[connectionlistfirstkey].head);
   initializeNewConnectionHashtableEntry(originatoripaddress, responderipaddress,
     originatorport, responderport, secsinceepoch, msecsincesec,
@@ -117,9 +118,9 @@ void initializeNewConnectionHashtableEntry(char **originatoripaddress,
   int msecsincesec_end, int isTCP, int app_data_vol, u_int16_t o_to_r_seqno, u_int32_t o_to_r_ack,
   ConnectionHashtableListNode **newnode)
 {
-  *newnode = (ConnectionHashtableListNode *)ConnectionHashtableSafeMalloc(sizeof(ConnectionHashtableListNode));
-  (*newnode)->entry = (ConnectionHashtableListEntry *)ConnectionHashtableSafeMalloc(sizeof(ConnectionHashtableListEntry *));
-  *((*newnode)->entry) = *(ConnectionHashtableListEntry *)ConnectionHashtableSafeMalloc(sizeof(ConnectionHashtableListEntry));
+  *newnode = (ConnectionHashtableListNode *)safeMalloc(sizeof(ConnectionHashtableListNode));
+  (*newnode)->entry = (ConnectionHashtableListEntry *)safeMalloc(sizeof(ConnectionHashtableListEntry *));
+  *((*newnode)->entry) = *(ConnectionHashtableListEntry *)safeMalloc(sizeof(ConnectionHashtableListEntry));
   (*newnode)->entry->orig_ip = *originatoripaddress;
   (*newnode)->entry->resp_ip = *responderipaddress;
   (*newnode)->entry->orig_port = originatorport;
@@ -362,7 +363,7 @@ void insertInConnectionHashtable(char **originatoripaddress, char **responderipa
     }
     else if(currentbucketnodeptr != NULL)
     {
-      ConnectionHashtableListNode **currentbucketnodeptrbuffer = (ConnectionHashtableListNode **)ConnectionHashtableSafeMalloc(
+      ConnectionHashtableListNode **currentbucketnodeptrbuffer = (ConnectionHashtableListNode **)safeMalloc(
         POINTERSIZE);
       currentbucketnodeptrbuffer = &(currentbucketnodeptr->next);
       initializeNewConnectionHashtableEntry(originatoripaddress, responderipaddress,
@@ -420,28 +421,16 @@ unsigned int ConnectionHashtableHashCode(char **originatoripaddress,
 
 void initializeConnectionHashtable()
 {
-  connectionhashtable.tableentrylists = ConnectionHashtableSafeMalloc(DEFAULTCONNECTIONHASHTABLESIZE*sizeof(
+  connectionhashtable.tableentrylists = safeMalloc(DEFAULTCONNECTIONHASHTABLESIZE*sizeof(
     ConnectionHashtableList)*POINTERSIZE);
   //clear the array
   int i;
   for(i=INTINITIALIZER; i<DEFAULTCONNECTIONHASHTABLESIZE; i++)
   {
-    connectionhashtable.tableentrylists[i] = *(ConnectionHashtableList *)ConnectionHashtableSafeMalloc(sizeof(
+    connectionhashtable.tableentrylists[i] = *(ConnectionHashtableList *)safeMalloc(sizeof(
       ConnectionHashtableList));
     connectionhashtable.tableentrylists[i].head = NULL;
   }
   connectionhashtablesize = INTINITIALIZER;
   connectionhashtablecapacity = DEFAULTCONNECTIONHASHTABLESIZE;
-}
-
-void *ConnectionHashtableSafeMalloc (unsigned int sz)
-{
-    void *p;
-    if ((p = (void *)malloc (sz)) == NULL)
-    {
-        printf ("memory allocation failed, exiting ...\n");
-        exit (EXIT_ERRORCODE);
-    }
-    memset (p,FALSE,sz);
-    return (p);
 }

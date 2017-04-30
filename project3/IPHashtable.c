@@ -90,23 +90,23 @@ ListNode *findInDestIPTable(u_int32_t entrysearchkey, u_int32_t entrysearchvalue
 
 void initializeSourceIPTableList(u_int32_t listfirstentrykey, u_int32_t listfirstentryvalue)
 {
-  ListNode **headbuffer = (ListNode **)hashTableSafeMalloc(POINTERSIZE);
+  ListNode **headbuffer = (ListNode **)safeMalloc(POINTERSIZE);
   headbuffer = &(sourceiphashtable.tableentrylists[listfirstentrykey].head);
   initializeNewEntry(listfirstentrykey, listfirstentryvalue, headbuffer);
 }
 
 void initializeDestIPTableList(u_int32_t listfirstentrykey, u_int32_t listfirstentryvalue)
 {
-  ListNode **headbuffer = (ListNode **)hashTableSafeMalloc(POINTERSIZE);
+  ListNode **headbuffer = (ListNode **)safeMalloc(POINTERSIZE);
   headbuffer = &(destiphashtable.tableentrylists[listfirstentrykey].head);
   initializeNewEntry(listfirstentrykey, listfirstentryvalue, headbuffer);
 }
 
 void initializeNewEntry(u_int32_t newentrykey, u_int32_t newentryvalue, ListNode **newnode)
 {
-  *newnode = (ListNode *)hashTableSafeMalloc(sizeof(ListNode));
-  (*newnode)->entry = (ListEntry *)hashTableSafeMalloc(sizeof(ListEntry *));
-  *((*newnode)->entry) = *(ListEntry *)hashTableSafeMalloc(sizeof(ListEntry));
+  *newnode = (ListNode *)safeMalloc(sizeof(ListNode));
+  (*newnode)->entry = (ListEntry *)safeMalloc(sizeof(ListEntry *));
+  *((*newnode)->entry) = *(ListEntry *)safeMalloc(sizeof(ListEntry));
   (*newnode)->entry->key = newentrykey;
   (*newnode)->entry->value = newentryvalue;
   (*newnode)->entry->count = ENTRYCOUNTINITIALIZER;
@@ -131,7 +131,7 @@ void insertSourceIP(u_int32_t newentryvalue)
       currentbucketnodeptr->entry->count++;
     else if(currentbucketnodeptr != NULL)
     {
-      ListNode **currentbucketnodeptrbuffer = (ListNode **)hashTableSafeMalloc(POINTERSIZE);
+      ListNode **currentbucketnodeptrbuffer = (ListNode **)safeMalloc(POINTERSIZE);
       currentbucketnodeptrbuffer = &(currentbucketnodeptr->next);
       initializeNewEntry(newentrykey, newentryvalue, currentbucketnodeptrbuffer);
       sourceiphashtablesize++;
@@ -158,7 +158,7 @@ void insertDestIP(u_int32_t newentryvalue)
       currentbucketnodeptr->entry->count++;
     else if(currentbucketnodeptr != NULL)
     {
-      ListNode **currentbucketnodeptrbuffer = (ListNode **)hashTableSafeMalloc(POINTERSIZE);
+      ListNode **currentbucketnodeptrbuffer = (ListNode **)safeMalloc(POINTERSIZE);
       currentbucketnodeptrbuffer = &(currentbucketnodeptr->next);
       initializeNewEntry(newentrykey, newentryvalue, currentbucketnodeptrbuffer);
       destiphashtablesize++;
@@ -173,17 +173,17 @@ u_int32_t hashCode(u_int32_t counttohash)
 
 void initializeTables()
 {
-  sourceiphashtable.tableentrylists = hashTableSafeMalloc(DEFAULTIPHASHTABLESIZE
+  sourceiphashtable.tableentrylists = safeMalloc(DEFAULTIPHASHTABLESIZE
     *sizeof(List)*POINTERSIZE);
-  destiphashtable.tableentrylists = hashTableSafeMalloc(DEFAULTIPHASHTABLESIZE
+  destiphashtable.tableentrylists = safeMalloc(DEFAULTIPHASHTABLESIZE
     *sizeof(List)*POINTERSIZE);
   //clear the array
   int i;
   for(i=INTINITIALIZER; i<DEFAULTIPHASHTABLESIZE; i++)
   {
-    sourceiphashtable.tableentrylists[i] = *(List *)hashTableSafeMalloc(sizeof(List));
+    sourceiphashtable.tableentrylists[i] = *(List *)safeMalloc(sizeof(List));
     sourceiphashtable.tableentrylists[i].head = NULL;
-    destiphashtable.tableentrylists[i] = *(List *)hashTableSafeMalloc(sizeof(List));
+    destiphashtable.tableentrylists[i] = *(List *)safeMalloc(sizeof(List));
     destiphashtable.tableentrylists[i].head = NULL;
   }
   sourceiphashtablesize = INTINITIALIZER;
@@ -192,7 +192,7 @@ void initializeTables()
   destiphashtablecapacity = DEFAULTIPHASHTABLESIZE;
 }
 
-void *hashTableSafeMalloc (unsigned int sz)
+void *safeMalloc (unsigned int sz)
 {
     void *p;
     if ((p = (void *)malloc (sz)) == NULL)

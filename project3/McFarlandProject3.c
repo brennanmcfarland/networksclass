@@ -21,7 +21,6 @@
 #include </usr/include/netinet/ip.h> //for the iphdr struct
 #include </usr/include/netinet/udp.h> //for the udphdr struct
 #include </usr/include/netinet/tcp.h> //for the tcphdr struct
-#include "IPHashtable.c"
 #include "ConnectionHashtable.c"
 #include "McFarlandProject3.h"
 
@@ -398,7 +397,7 @@ void analyzePacketTrace()
       }
       else
       {
-        int truncatedipheader = analyzePacketIPHeader(truncatedethheader); //NOTE:here's where it's being set to 0
+        int truncatedipheader = analyzePacketIPHeader(truncatedethheader);
         if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
           printf("%d",tracepacketipheader.protocol);
         if(truncatedipheader == FALSE)
@@ -750,18 +749,6 @@ void safeOpen(FILE **filestream, char *filename, char filemode)
     printf("Error: Unable to read from file.\n");
     exit(EXIT_ERRORCODE);
   }
-}
-
-void *safeMalloc (unsigned int sz)
-{
-    void *p;
-    if ((p = (void *)malloc (sz)) == NULL)
-    {
-        printf ("memory allocation failed, exiting ...\n");
-        exit (EXIT_ERRORCODE);
-    }
-    memset (p,FALSE,sz);
-    return (p);
 }
 
 int main(int argc, char *argv[])

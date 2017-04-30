@@ -185,4 +185,3 @@ void parseInput(int argc, char *argv[], char **tracefilename);
 char *parseInputArg(int inputargtoparse);
 int safeRead(FILE *filestream, void *readbuffer, int readbuffersize);
 void safeOpen(FILE **filestream, char *filename, char filemode);
-void *safeMalloc (unsigned int sz);
