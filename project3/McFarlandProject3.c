@@ -433,7 +433,6 @@ int analyzePacketEthernetHeader(PacketMetaInfo *tracepacketmetainfo)
   {
     safeRead(tracefilestream, (void *)tracepacketethernetheaderbuffer,
       sizeof(PacketEthernetHeader));
-    tracepacketmetainfo->meta_caplen -= sizeof(PacketEthernetHeader);
     packetEthernetHeaderToHostOrder(tracepacketethernetheaderbuffer);
     /*if(flags[FLAG_PRINTETHERNETHEADERS] == TRUE)
       printEthernetHeaderInfo(formatTimeStamp(
@@ -458,13 +457,11 @@ int analyzePacketIPHeader(int truncatedethhdr)
   {
     safeRead(tracefilestream, (void *)tracepacketipheaderbuffer, sizeof(struct iphdr));
     iphdrToHostOrder(tracepacketipheaderbuffer);
-    //tracepacketmetainfo.meta_caplen -= sizeof(struct iphdr);
     if(tracepacketmetainfo.meta_caplen < tracepacketipheader.ihl*WORDSIZE)
     {
       ip_numpartialheaders++; //if partial ip header, do nothing
       return TRUE;
     }
-    tracepacketmetainfo.meta_caplen -= tracepacketipheader.ihl*WORDSIZE;
     ip_numfullheaders++;
     insertSourceIP(tracepacketipheader.saddr);
     insertDestIP(tracepacketipheader.daddr);
@@ -499,7 +496,6 @@ void analyzePacketTCPHeader()
   {
     safeRead(tracefilestream, (void *)tracepackettcpheaderbuffer, sizeof(struct tcphdr));
     tcphdrToHostOrder(tracepackettcpheaderbuffer);
-    tracepacketmetainfo.meta_caplen -= sizeof(struct tcphdr);
     if(tracepacketmetainfo.meta_caplen+sizeof(struct tcphdr) < tracepackettcpheader.th_off*WORDSIZE)
     {
       tcp_numpartialheaders++; //if partial tcp header, do nothing
@@ -532,7 +528,6 @@ void analyzePacketUDPHeader()
   {
     safeRead(tracefilestream, (void *)tracepacketudpheaderbuffer, sizeof(struct udphdr));
     udphdrToHostOrder(tracepacketudpheaderbuffer);
-    tracepacketmetainfo.meta_caplen -= sizeof(struct udphdr);
     udp_numfullheaders++;
     char *udppacketsourceip = formatIPAddress(tracepacketipheader.saddr);
     char *udppacketdestip = formatIPAddress(tracepacketipheader.daddr);
@@ -732,6 +727,11 @@ char *parseInputArg(int inputargtoparse)
 
 int safeRead(FILE *filestream, void *readbuffer, int readbuffersize)
 {
+  if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
+    printf("Read %u bytes\n", readbuffersize);
+  if(tracepacketmetainfo.meta_caplen != 0)
+    tracepacketmetainfo.meta_caplen -= readbuffersize;
+
   int readresult = fread(readbuffer,BYTESIZE,readbuffersize,filestream);
   if(readresult == FALSE && ferror(filestream) != FALSE)
   {
