@@ -397,12 +397,14 @@ void analyzePacketTrace()
       }
       else
       {
+        //14 of the 15 packets get here, 2 of them are udp
         int truncatedipheader = analyzePacketIPHeader(truncatedethheader);
         if(flags[FLAG_VERBOSEOUTPUT] == TRUE)
           printf("%d",tracepacketipheader.protocol);
         if(truncatedipheader == FALSE)
         {
           //if the ip header is
+          //5 packets make it here, but they're all tcp
           analyzeTransportHeader();
         }
       }
@@ -457,8 +459,9 @@ int analyzePacketIPHeader(int truncatedethhdr)
   {
     safeRead(tracefilestream, (void *)tracepacketipheaderbuffer, sizeof(struct iphdr));
     iphdrToHostOrder(tracepacketipheaderbuffer);
-    if(tracepacketmetainfo.meta_caplen < tracepacketipheader.ihl*WORDSIZE)
+    if(tracepacketmetainfo.meta_caplen+sizeof(struct iphdr) < tracepacketipheader.ihl*WORDSIZE)
     {
+      //THE UDP PACKET GETS DROPPED HERE
       ip_numpartialheaders++; //if partial ip header, do nothing
       return TRUE;
     }
@@ -494,6 +497,7 @@ void analyzePacketTCPHeader()
 {
   if(tracepacketmetainfo.meta_caplen >= sizeof(struct tcphdr))
   {
+    memset((void *)&tracepackettcpheader, FALSE, sizeof(tracepackettcpheader));
     safeRead(tracefilestream, (void *)tracepackettcpheaderbuffer, sizeof(struct tcphdr));
     tcphdrToHostOrder(tracepackettcpheaderbuffer);
     if(tracepacketmetainfo.meta_caplen+sizeof(struct tcphdr) < tracepackettcpheader.th_off*WORDSIZE)
@@ -580,10 +584,10 @@ void tcphdrToHostOrder(struct tcphdr *packettcpheader)
   packettcpheader->th_sport = ntohs(packettcpheader->th_sport);
   packettcpheader->th_dport = ntohs(packettcpheader->th_dport);
   //packettcpheader->th_off = ntohs(packettcpheader->th_off);
-  packettcpheader->th_seq = ntohs(packettcpheader->th_seq);
-  packettcpheader->th_ack = ntohs(packettcpheader->th_seq);
-  packettcpheader->seq = ntohl(packettcpheader->seq);
+  //packettcpheader->th_seq = ntohs(packettcpheader->th_seq);
   packettcpheader->ack_seq = ntohl(packettcpheader->ack_seq);
+  packettcpheader->seq = ntohl(packettcpheader->seq);
+  //packettcpheader->ack_seq = ntohl(packettcpheader->ack_seq);
 }
 
 //converts data in udphdr to host order

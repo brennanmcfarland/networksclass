@@ -258,9 +258,9 @@ void updateOtoRPrevAcks(ConnectionHashtableListNode **currentnode, u_int32_t new
   }
   (*currentnode)->entry->o_to_r_prevacks[INTINITIALIZER] =
     newack;
-  printf("%d %d %d\n", (int)(*currentnode)->entry->o_to_r_prevacks[0],
-    (int)(*currentnode)->entry->o_to_r_prevacks[1],
-    (int)(*currentnode)->entry->o_to_r_prevacks[2]);
+//  printf("%d %d %d\n", (int)(*currentnode)->entry->o_to_r_prevacks[0],
+//    (int)(*currentnode)->entry->o_to_r_prevacks[1],
+//    (int)(*currentnode)->entry->o_to_r_prevacks[2]);
   //check fast retransmit condition, return if false
   for(i=INTINITIALIZER; i<PREVACKSSIZE-OFFSETVALUE; i++)
   {
