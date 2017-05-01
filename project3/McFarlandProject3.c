@@ -141,7 +141,7 @@ void printFullTCPPacketInfo(double timestamp, char sourceaddress[IPADDRESSSIZE],
   printf("%.6f ", timestamp);
   printTCPSourceDest(sourceaddress, destinationaddress, tracepackettcpheader.th_sport,
     tracepackettcpheader.th_dport);
-  printf(" T ");
+  printf("T ");
   printf("%d ", calculateTCPAppDataVolume());
   printf("%u ", tracepackettcpheader.seq);
   printf("%u", tracepackettcpheader.ack_seq);
